@@ -1,3 +1,5 @@
+# BFS
+
 class Solution {
 public:
     bool canFinish(int numCourses, vector<pair<int, int>>& prerequisites) {
@@ -36,5 +38,45 @@ public:
             return false;
         return true;
 
+    }
+};
+
+
+# DFS
+
+class Solution {
+public:
+    bool canFinish(int numCourses, vector<pair<int, int>>& prerequisites) {
+        vector<unordered_set<int>> graph(numCourses);
+        vector<int> degree(numCourses, 0);
+        for(auto pre: prerequisites)
+        {
+            graph[pre.second].insert(pre.first);
+        }
+
+        for(int i = 0;i < numCourses; i++)
+        {
+            if(!DFS(graph, degree, i))
+                return false;
+        }
+
+
+        return true;
+
+    }
+
+private:
+    bool DFS(vector<unordered_set<int>> &graph, vector<int> &degree, int i)
+    {
+        if(degree[i])
+            return false;
+        degree[i] += 1;
+        for(unordered_set<int>::iterator it = graph[i].begin(); it != graph[i].end(); it++)
+        {
+            if(!DFS(graph, degree, *it))
+                return false;
+        }
+        degree[i] -= 1;
+        return true;
     }
 };

@@ -4,5 +4,8 @@
 !_TAG_PROGRAM_NAME	Exuberant Ctags	//
 !_TAG_PROGRAM_URL	http://ctags.sourceforge.net	/official site/
 !_TAG_PROGRAM_VERSION	5.8	//
-Solution	/Users/sean10/Code/Algorithm_code/LeetCode_210_TopoSort.cpp	/^class Solution {$/;"	class	line:1	file:
-findOrder	/Users/sean10/Code/Algorithm_code/LeetCode_210_TopoSort.cpp	/^    vector<int> findOrder(int numCourses, vector<pair<int, int>>& prerequisites) {$/;"	function	line:3	class:Solution	signature:(int numCourses, vector<pair<int, int>>& prerequisites)
+Solution	/Users/sean10/Code/Algorithm_code/LeetCode_207_TopoSort.cpp	/^class Solution {$/;"	class	line:3	file:
+canFinish	/Users/sean10/Code/Algorithm_code/LeetCode_207_TopoSort.cpp	/^    bool canFinish(int numCourses, vector<pair<int, int>>& prerequisites) {$/;"	function	line:5	class:Solution	signature:(int numCourses, vector<pair<int, int>>& prerequisites)
+Solution	/Users/sean10/Code/Algorithm_code/LeetCode_207_TopoSort.cpp	/^class Solution {$/;"	class	line:47	file:
+canFinish	/Users/sean10/Code/Algorithm_code/LeetCode_207_TopoSort.cpp	/^    bool canFinish(int numCourses, vector<pair<int, int>>& prerequisites) {$/;"	function	line:49	class:Solution	signature:(int numCourses, vector<pair<int, int>>& prerequisites)
+DFS	/Users/sean10/Code/Algorithm_code/LeetCode_207_TopoSort.cpp	/^    bool DFS(vector<unordered_set<int>> &graph, vector<int> &degree, int i)$/;"	function	line:69	class:Solution	file:	signature:(vector<unordered_set<int>> &graph, vector<int> &degree, int i)

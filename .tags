@@ -4,7 +4,13 @@ BFS	/Users/sean10/Code/Algorithm_code/LeetCode_130.cpp	/^    void BFS(vector<vec
 Solution	/Users/sean10/Code/Algorithm_code/LeetCode_130.cpp	/^class Solution {$/;"	class	line:77	file:
 solve	/Users/sean10/Code/Algorithm_code/LeetCode_130.cpp	/^    void solve(vector<vector<char>>& board) {$/;"	function	line:79	class:Solution	signature:(vector<vector<char>>& board)
 DFS	/Users/sean10/Code/Algorithm_code/LeetCode_130.cpp	/^    void DFS(vector<vector<char>>& board,int x, int y, char target)$/;"	function	line:111	class:Solution	signature:(vector<vector<char>>& board,int x, int y, char target)
-Solution	/Users/sean10/Code/Algorithm_code/LeetCode_207_TopoSort.cpp	/^class Solution {$/;"	class	line:1	file:
-canFinish	/Users/sean10/Code/Algorithm_code/LeetCode_207_TopoSort.cpp	/^    bool canFinish(int numCourses, vector<pair<int, int>>& prerequisites) {$/;"	function	line:3	class:Solution	signature:(int numCourses, vector<pair<int, int>>& prerequisites)
 Solution	/Users/sean10/Code/Algorithm_code/LeetCode_210_TopoSort.cpp	/^class Solution {$/;"	class	line:1	file:
 findOrder	/Users/sean10/Code/Algorithm_code/LeetCode_210_TopoSort.cpp	/^    vector<int> findOrder(int numCourses, vector<pair<int, int>>& prerequisites) {$/;"	function	line:3	class:Solution	signature:(int numCourses, vector<pair<int, int>>& prerequisites)
+Solution	/Users/sean10/Code/Algorithm_code/LeetCode_210_TopoSort.cpp	/^class Solution {$/;"	class	line:46	file:
+findOrder	/Users/sean10/Code/Algorithm_code/LeetCode_210_TopoSort.cpp	/^    vector<int> findOrder(int numCourses, vector<pair<int, int>>& prerequisites) {$/;"	function	line:48	class:Solution	signature:(int numCourses, vector<pair<int, int>>& prerequisites)
+DFS	/Users/sean10/Code/Algorithm_code/LeetCode_210_TopoSort.cpp	/^    bool DFS(vector<int> &ans, vector<unordered_set<int>>& graph, vector<int> &degree, int i,int& cnt)$/;"	function	line:74	class:Solution	signature:(vector<int> &ans, vector<unordered_set<int>>& graph, vector<int> &degree, int i,int& cnt)
+Solution	/Users/sean10/Code/Algorithm_code/LeetCode_207_TopoSort.cpp	/^class Solution {$/;"	class	line:3	file:
+canFinish	/Users/sean10/Code/Algorithm_code/LeetCode_207_TopoSort.cpp	/^    bool canFinish(int numCourses, vector<pair<int, int>>& prerequisites) {$/;"	function	line:5	class:Solution	signature:(int numCourses, vector<pair<int, int>>& prerequisites)
+Solution	/Users/sean10/Code/Algorithm_code/LeetCode_207_TopoSort.cpp	/^class Solution {$/;"	class	line:47	file:
+canFinish	/Users/sean10/Code/Algorithm_code/LeetCode_207_TopoSort.cpp	/^    bool canFinish(int numCourses, vector<pair<int, int>>& prerequisites) {$/;"	function	line:49	class:Solution	signature:(int numCourses, vector<pair<int, int>>& prerequisites)
+DFS	/Users/sean10/Code/Algorithm_code/LeetCode_207_TopoSort.cpp	/^    bool DFS(vector<unordered_set<int>> &graph, vector<int> &degree, int i)$/;"	function	line:69	class:Solution	file:	signature:(vector<unordered_set<int>> &graph, vector<int> &degree, int i)
