@@ -31,3 +31,5 @@ buildTree	/Users/sean10/Code/Algorithm_code/LeetCode_105.cpp	/^    TreeNode* bui
 DFS	/Users/sean10/Code/Algorithm_code/LeetCode_105.cpp	/^    void DFS(TreeNode* p, vector<int>& preorder,vector<int>& inorder, iterator<random_access_iterator_tag, int> i, iterator<random_access_iterator_tag, int> j, int len)$/;"	function	line:63	class:Solution	signature:(TreeNode* p, vector<int>& preorder,vector<int>& inorder, iterator<random_access_iterator_tag, int> i, iterator<random_access_iterator_tag, int> j, int len)
 Solution	/Users/sean10/Code/Algorithm_code/LeetCode_28.cpp	/^class Solution {$/;"	class	line:1	file:
 strStr	/Users/sean10/Code/Algorithm_code/LeetCode_28.cpp	/^    int strStr(string haystack, string needle) {$/;"	function	line:3	class:Solution	signature:(string haystack, string needle)
+Solution	/Users/sean10/Code/Algorithm_code/LeetCode_125.cpp	/^class Solution {$/;"	class	line:1	file:
+isPalindrome	/Users/sean10/Code/Algorithm_code/LeetCode_125.cpp	/^    bool isPalindrome(string s) {$/;"	function	line:3	class:Solution	signature:(string s)
