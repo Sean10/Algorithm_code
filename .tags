@@ -14,3 +14,20 @@ canFinish	/Users/sean10/Code/Algorithm_code/LeetCode_207_TopoSort.cpp	/^    bool
 Solution	/Users/sean10/Code/Algorithm_code/LeetCode_207_TopoSort.cpp	/^class Solution {$/;"	class	line:47	file:
 canFinish	/Users/sean10/Code/Algorithm_code/LeetCode_207_TopoSort.cpp	/^    bool canFinish(int numCourses, vector<pair<int, int>>& prerequisites) {$/;"	function	line:49	class:Solution	signature:(int numCourses, vector<pair<int, int>>& prerequisites)
 DFS	/Users/sean10/Code/Algorithm_code/LeetCode_207_TopoSort.cpp	/^    bool DFS(vector<unordered_set<int>> &graph, vector<int> &degree, int i)$/;"	function	line:69	class:Solution	file:	signature:(vector<unordered_set<int>> &graph, vector<int> &degree, int i)
+Solution	/Users/sean10/Code/Algorithm_code/LeetCode_116.cpp	/^class Solution {$/;"	class	line:11	file:
+connect	/Users/sean10/Code/Algorithm_code/LeetCode_116.cpp	/^    void connect(TreeLinkNode *root) {$/;"	function	line:13	class:Solution	signature:(TreeLinkNode *root)
+Solution	/Users/sean10/Code/Algorithm_code/LeetCode_26.cpp	/^class Solution {$/;"	class	line:1	file:
+removeDuplicates	/Users/sean10/Code/Algorithm_code/LeetCode_26.cpp	/^    int removeDuplicates(vector<int>& nums) {$/;"	function	line:3	class:Solution	signature:(vector<int>& nums)
+Solution	/Users/sean10/Code/Algorithm_code/LeetCode_687_Curr.cpp	/^class Solution {$/;"	class	line:14	file:
+longestUnivaluePath	/Users/sean10/Code/Algorithm_code/LeetCode_687_Curr.cpp	/^    int longestUnivaluePath(TreeNode* root) {$/;"	function	line:16	class:Solution	signature:(TreeNode* root)
+Solution	/Users/sean10/Code/Algorithm_code/LeetCode_88.cpp	/^class Solution {$/;"	class	line:1	file:
+merge	/Users/sean10/Code/Algorithm_code/LeetCode_88.cpp	/^    void merge(vector<int>& nums1, int m, vector<int>& nums2, int n) {$/;"	function	line:3	class:Solution	signature:(vector<int>& nums1, int m, vector<int>& nums2, int n)
+Solution	/Users/sean10/Code/Algorithm_code/LeetCode_105.cpp	/^class Solution {$/;"	class	line:12	file:
+buildTree	/Users/sean10/Code/Algorithm_code/LeetCode_105.cpp	/^    TreeNode* buildTree(vector<int>& preorder, vector<int>& inorder) {$/;"	function	line:14	class:Solution	signature:(vector<int>& preorder, vector<int>& inorder)
+Position	/Users/sean10/Code/Algorithm_code/LeetCode_105.cpp	/^    int Position(vector<int>& v, int val)$/;"	function	line:21	class:Solution	signature:(vector<int>& v, int val)
+DFS	/Users/sean10/Code/Algorithm_code/LeetCode_105.cpp	/^    void DFS(TreeNode* &p, vector<int>& preorder, vector<int>& inorder, int i, int j, int len)$/;"	function	line:29	class:Solution	signature:(TreeNode* &p, vector<int>& preorder, vector<int>& inorder, int i, int j, int len)
+Solution	/Users/sean10/Code/Algorithm_code/LeetCode_105.cpp	/^class Solution {$/;"	class	line:52	file:
+buildTree	/Users/sean10/Code/Algorithm_code/LeetCode_105.cpp	/^    TreeNode* buildTree(vector<int>& preorder, vector<int>& inorder) {$/;"	function	line:54	class:Solution	signature:(vector<int>& preorder, vector<int>& inorder)
+DFS	/Users/sean10/Code/Algorithm_code/LeetCode_105.cpp	/^    void DFS(TreeNode* p, vector<int>& preorder,vector<int>& inorder, iterator<random_access_iterator_tag, int> i, iterator<random_access_iterator_tag, int> j, int len)$/;"	function	line:63	class:Solution	signature:(TreeNode* p, vector<int>& preorder,vector<int>& inorder, iterator<random_access_iterator_tag, int> i, iterator<random_access_iterator_tag, int> j, int len)
+Solution	/Users/sean10/Code/Algorithm_code/LeetCode_28.cpp	/^class Solution {$/;"	class	line:1	file:
+strStr	/Users/sean10/Code/Algorithm_code/LeetCode_28.cpp	/^    int strStr(string haystack, string needle) {$/;"	function	line:3	class:Solution	signature:(string haystack, string needle)
