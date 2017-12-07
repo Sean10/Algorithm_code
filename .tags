@@ -29,7 +29,16 @@ DFS	/Users/sean10/Code/Algorithm_code/LeetCode_105.cpp	/^    void DFS(TreeNode* 
 Solution	/Users/sean10/Code/Algorithm_code/LeetCode_105.cpp	/^class Solution {$/;"	class	line:52	file:
 buildTree	/Users/sean10/Code/Algorithm_code/LeetCode_105.cpp	/^    TreeNode* buildTree(vector<int>& preorder, vector<int>& inorder) {$/;"	function	line:54	class:Solution	signature:(vector<int>& preorder, vector<int>& inorder)
 DFS	/Users/sean10/Code/Algorithm_code/LeetCode_105.cpp	/^    void DFS(TreeNode* p, vector<int>& preorder,vector<int>& inorder, iterator<random_access_iterator_tag, int> i, iterator<random_access_iterator_tag, int> j, int len)$/;"	function	line:63	class:Solution	signature:(TreeNode* p, vector<int>& preorder,vector<int>& inorder, iterator<random_access_iterator_tag, int> i, iterator<random_access_iterator_tag, int> j, int len)
-Solution	/Users/sean10/Code/Algorithm_code/LeetCode_28.cpp	/^class Solution {$/;"	class	line:1	file:
-strStr	/Users/sean10/Code/Algorithm_code/LeetCode_28.cpp	/^    int strStr(string haystack, string needle) {$/;"	function	line:3	class:Solution	signature:(string haystack, string needle)
 Solution	/Users/sean10/Code/Algorithm_code/LeetCode_125.cpp	/^class Solution {$/;"	class	line:1	file:
 isPalindrome	/Users/sean10/Code/Algorithm_code/LeetCode_125.cpp	/^    bool isPalindrome(string s) {$/;"	function	line:3	class:Solution	signature:(string s)
+Solution	/Users/sean10/Code/Algorithm_code/LeetCode_287.cpp	/^class Solution {$/;"	class	line:3	file:
+findDuplicate	/Users/sean10/Code/Algorithm_code/LeetCode_287.cpp	/^    int findDuplicate(vector<int>& nums) {$/;"	function	line:5	class:Solution	signature:(vector<int>& nums)
+Solution	/Users/sean10/Code/Algorithm_code/LeetCode_287.cpp	/^class Solution {$/;"	class	line:26	file:
+findDuplicate	/Users/sean10/Code/Algorithm_code/LeetCode_287.cpp	/^    int findDuplicate(vector<int>& nums) {$/;"	function	line:28	class:Solution	signature:(vector<int>& nums)
+Solution	/Users/sean10/Code/Algorithm_code/LeetCode_28.cpp	/^class Solution {$/;"	class	line:1	file:
+strStr	/Users/sean10/Code/Algorithm_code/LeetCode_28.cpp	/^    int strStr(string haystack, string needle) {$/;"	function	line:3	class:Solution	signature:(string haystack, string needle)
+Solution	/Users/sean10/Code/Algorithm_code/LeetCode_28.cpp	/^class Solution {$/;"	class	line:13	file:
+strStr	/Users/sean10/Code/Algorithm_code/LeetCode_28.cpp	/^    int strStr(string haystack, string needle) {$/;"	function	line:15	class:Solution	signature:(string haystack, string needle)
+process	/Users/sean10/Code/Algorithm_code/LeetCode_28.cpp	/^    void process(string s, vector<int>& f)$/;"	function	line:36	class:Solution	signature:(string s, vector<int>& f)
+Solution	/Users/sean10/Code/Algorithm_code/LeetCode_108.cpp	/^class Solution {$/;"	class	line:10	file:
+sortedArrayToBST	/Users/sean10/Code/Algorithm_code/LeetCode_108.cpp	/^    TreeNode* sortedArrayToBST(vector<int>& nums) {$/;"	function	line:12	class:Solution	signature:(vector<int>& nums)
