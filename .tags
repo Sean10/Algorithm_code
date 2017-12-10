@@ -18,8 +18,6 @@ Solution	/Users/sean10/Code/Algorithm_code/LeetCode_116.cpp	/^class Solution {$/
 connect	/Users/sean10/Code/Algorithm_code/LeetCode_116.cpp	/^    void connect(TreeLinkNode *root) {$/;"	function	line:13	class:Solution	signature:(TreeLinkNode *root)
 Solution	/Users/sean10/Code/Algorithm_code/LeetCode_26.cpp	/^class Solution {$/;"	class	line:1	file:
 removeDuplicates	/Users/sean10/Code/Algorithm_code/LeetCode_26.cpp	/^    int removeDuplicates(vector<int>& nums) {$/;"	function	line:3	class:Solution	signature:(vector<int>& nums)
-Solution	/Users/sean10/Code/Algorithm_code/LeetCode_687_Curr.cpp	/^class Solution {$/;"	class	line:14	file:
-longestUnivaluePath	/Users/sean10/Code/Algorithm_code/LeetCode_687_Curr.cpp	/^    int longestUnivaluePath(TreeNode* root) {$/;"	function	line:16	class:Solution	signature:(TreeNode* root)
 Solution	/Users/sean10/Code/Algorithm_code/LeetCode_88.cpp	/^class Solution {$/;"	class	line:1	file:
 merge	/Users/sean10/Code/Algorithm_code/LeetCode_88.cpp	/^    void merge(vector<int>& nums1, int m, vector<int>& nums2, int n) {$/;"	function	line:3	class:Solution	signature:(vector<int>& nums1, int m, vector<int>& nums2, int n)
 Solution	/Users/sean10/Code/Algorithm_code/LeetCode_105.cpp	/^class Solution {$/;"	class	line:12	file:
@@ -42,3 +40,18 @@ strStr	/Users/sean10/Code/Algorithm_code/LeetCode_28.cpp	/^    int strStr(string
 process	/Users/sean10/Code/Algorithm_code/LeetCode_28.cpp	/^    void process(string s, vector<int>& f)$/;"	function	line:36	class:Solution	signature:(string s, vector<int>& f)
 Solution	/Users/sean10/Code/Algorithm_code/LeetCode_108.cpp	/^class Solution {$/;"	class	line:10	file:
 sortedArrayToBST	/Users/sean10/Code/Algorithm_code/LeetCode_108.cpp	/^    TreeNode* sortedArrayToBST(vector<int>& nums) {$/;"	function	line:12	class:Solution	signature:(vector<int>& nums)
+Solution	/Users/sean10/Code/Algorithm_code/LeetCode_11.cpp	/^class Solution {$/;"	class	line:1	file:
+maxArea	/Users/sean10/Code/Algorithm_code/LeetCode_11.cpp	/^    int maxArea(vector<int>& height) {$/;"	function	line:3	class:Solution	signature:(vector<int>& height)
+socket	/Users/sean10/Code/Algorithm_code/socket/1.0_socket_server.py	/^import socket$/;"	namespace	line:1
+listen_socket	/Users/sean10/Code/Algorithm_code/socket/1.0_socket_server.py	/^listen_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)$/;"	variable	line:5
+request	/Users/sean10/Code/Algorithm_code/socket/1.0_socket_server.py	/^        request = client_connection.recv(1024)$/;"	variable	line:13
+socket	/Users/sean10/Code/Algorithm_code/socket/1.0_socket_client.py	/^import socket$/;"	namespace	line:1
+HOST	/Users/sean10/Code/Algorithm_code/socket/1.0_socket_client.py	/^HOST = ""$/;"	variable	line:3
+PORT	/Users/sean10/Code/Algorithm_code/socket/1.0_socket_client.py	/^PORT = 8000$/;"	variable	line:4
+s	/Users/sean10/Code/Algorithm_code/socket/1.0_socket_client.py	/^s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)$/;"	variable	line:6
+cmd	/Users/sean10/Code/Algorithm_code/socket/1.0_socket_client.py	/^    cmd = input("Please input msg:")$/;"	variable	line:11
+data	/Users/sean10/Code/Algorithm_code/socket/1.0_socket_client.py	/^    data = s.recv(1024)$/;"	variable	line:13
+Solution	/Users/sean10/Code/Algorithm_code/LeetCode_687_Curr.cpp	/^class Solution {$/;"	class	line:14	file:
+longestUnivaluePath	/Users/sean10/Code/Algorithm_code/LeetCode_687_Curr.cpp	/^    int longestUnivaluePath(TreeNode* root) {$/;"	function	line:16	class:Solution	signature:(TreeNode* root)
+Solution	/Users/sean10/Code/Algorithm_code/LeetCode_142.cpp	/^class Solution {$/;"	class	line:9	file:
+detectCycle	/Users/sean10/Code/Algorithm_code/LeetCode_142.cpp	/^    ListNode *detectCycle(ListNode *head) {$/;"	function	line:11	class:Solution	signature:(ListNode *head)
