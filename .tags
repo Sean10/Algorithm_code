@@ -55,3 +55,5 @@ Solution	/Users/sean10/Code/Algorithm_code/LeetCode_687_Curr.cpp	/^class Solutio
 longestUnivaluePath	/Users/sean10/Code/Algorithm_code/LeetCode_687_Curr.cpp	/^    int longestUnivaluePath(TreeNode* root) {$/;"	function	line:16	class:Solution	signature:(TreeNode* root)
 Solution	/Users/sean10/Code/Algorithm_code/LeetCode_142.cpp	/^class Solution {$/;"	class	line:9	file:
 detectCycle	/Users/sean10/Code/Algorithm_code/LeetCode_142.cpp	/^    ListNode *detectCycle(ListNode *head) {$/;"	function	line:11	class:Solution	signature:(ListNode *head)
+Solution	/Users/sean10/Code/Algorithm_code/LeetCode_349.cpp	/^class Solution {$/;"	class	line:1	file:
+intersection	/Users/sean10/Code/Algorithm_code/LeetCode_349.cpp	/^    vector<int> intersection(vector<int>& nums1, vector<int>& nums2) {$/;"	function	line:3	class:Solution	signature:(vector<int>& nums1, vector<int>& nums2)
