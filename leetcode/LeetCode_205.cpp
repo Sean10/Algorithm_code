@@ -1,3 +1,20 @@
+
+class Solution {
+public:
+    bool isIsomorphic(string s, string t) {
+        int v_s[256] = {0}, v_t[256] = {0}, n = s.size();
+        for(int i = 0;i < n; i++)
+        {
+            if(v_s[s[i]] != v_t[t[i]])
+                return false;
+            v_s[s[i]] = i+1;
+            v_t[t[i]] = i+1;
+        }
+        return true;
+
+    }
+};
+
 // O(n) space, O(n) time
 class Solution {
 public:
