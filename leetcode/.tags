@@ -1,0 +1,4 @@
+Solution	/Users/sean10/Code/Algorithm_code/leetcode/LeetCode_30.cpp	/^class Solution {$/;"	class	line:1	file:
+findSubstring	/Users/sean10/Code/Algorithm_code/leetcode/LeetCode_30.cpp	/^    vector<int> findSubstring(string s, vector<string>& words) {$/;"	function	line:3	class:Solution	signature:(string s, vector<string>& words)
+Solution	/Users/sean10/Code/Algorithm_code/leetcode/LeetCode_746.cpp	/^class Solution {$/;"	class	line:1	file:
+minCostClimbingStairs	/Users/sean10/Code/Algorithm_code/leetcode/LeetCode_746.cpp	/^    int minCostClimbingStairs(vector<int>& cost) {$/;"	function	line:3	class:Solution	signature:(vector<int>& cost)
