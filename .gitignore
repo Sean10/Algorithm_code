@@ -1,2 +1,6 @@
-.DS_Store
-__pycache__/
+**/.DS_Store
+**/__pycache__/
+**/.tags
+**/.tags1
+**/.idea/
+**/cmake-build-debug/
