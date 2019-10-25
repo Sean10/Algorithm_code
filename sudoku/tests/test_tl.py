@@ -34,12 +34,42 @@ headers = {
 
 def main():
     src_img = Image.open("tl.img.png")
+    ocr_img(src_img)
 
-    img_1 = src_img.crop((310, 0, 360, 40)).convert('L').point(table, '1')
-    # img_1.save("temp.png")
-
-    print(pytesseract.image_to_string(img_1,
+def ocr_img(src_img:Image)->list:
+    num = []
+    for cnt in range(9):
+        temp = []
+        img_1 = preprocess_img(src_img, "left", cnt)
+        img_1.save("temp.png")
+        img_2 = preprocess_img(src_img, "right", cnt)
+        img_2.save("temp2.png")
+        temp.append(pytesseract.image_to_string(img_1, lang='snum',
                                       config='--psm 7 sudoku'))
+        temp.append(pytesseract.image_to_string(img_2, lang='snum',
+                                      config='--psm 7 sudoku'))
+        num.append(temp)
+    return postprocess_num(num)
+
+def postprocess_num(num:list)->list:
+    for row in num:
+        print(row)
+    return  num
+
+def guess_truth(num):
+    if num < 30 and num > 0:
+        pass
+
+def preprocess_img(src_img:Image, location:str, postion:int)->Image:
+    if location == "left":
+        return src_img.crop((310, postion * 40+15, 325, 40 * (postion + 1))).convert('L').point(table, '1')
+    elif location == "right":
+        return src_img.crop((335, postion*40+15, 360, 40*(postion+1))).convert('L').point(table, '1')
+    else:
+        return None
+
+def ocr_num()->tuple:
+    pass
 
 
 def parse_img_src(src:str)->int:
