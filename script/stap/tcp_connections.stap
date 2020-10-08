@@ -1,0 +1,40 @@
+#! /usr/bin/env stap
+
+global port = -1
+probe begin {
+  %( $# > 1 %?
+     log ("Usage:\n\tstap tcp_connections.stap [port-number]\n\n\n")
+     exit()
+  %) 
+  %( $# == 1 %?
+     port = strtol (@1, 10)
+     if (port == 0)
+        {
+        printf ("Cannot convert %s to a number\n\n\n",@1)
+        port = -1
+        exit ()
+        }
+     if (port > -1) printf ("Looking for port %d\n",port)
+  %:
+  if ($# == 0) 
+     {
+     port = 0
+     print ("Looking for all ports\n");
+     }
+  %)
+
+  if (port > -1) printf("%6s %16s %6s %6s %16s\n",
+         "UID", "CMD", "PID", "PORT", "IP_SOURCE")
+}
+
+probe kernel.function("tcp_accept").return?,
+      kernel.function("inet_csk_accept").return? {
+  sock = $return
+  if (sock != 0)
+     {
+     if ((port == 0) || (inet_get_local_port(sock) == port))
+        printf("%6d %16s %6d %6d %16s\n", uid(), execname(), pid(),
+           inet_get_local_port(sock), inet_get_ip_source(sock))
+     }
+}
+# tcp_connections ends here
