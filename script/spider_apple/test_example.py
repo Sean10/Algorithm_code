@@ -29,8 +29,8 @@ def init_signal():
 
 def send_mail(title, article, receiver):
     host = 'smtp.qq.com'  # 这是QQ邮箱SMTP服务器的host，其他邮箱有不同可具体查询
-    user = ''#这是邮箱号
-    password = ''#这是授权码，注意不是邮箱的密码或者QQ的密码！
+    user = 'sean10@qq.com'#这是邮箱号
+    password = 'irppsqhppevvbdec'#这是授权码，注意不是邮箱的密码或者QQ的密码！
     sender = user
     coding = 'utf8'
     message = MIMEText(article, 'plain', coding)
@@ -45,8 +45,8 @@ def send_mail(title, article, receiver):
         mail_client.sendmail(sender, receiver, message.as_string())
         mail_client.close()
         print('邮件已成功发送给:' + receiver)
-    except:
-        print('发送失败!')
+    except Exception as e:
+        print('发送失败! {}'.format(str(e)))
 # while True:
 def main():
     while True:
@@ -66,11 +66,15 @@ def main():
             # print("something error {}".format(str(e)))
             if 301 == e.status:
                 print("{} 无货".format(localtime))
+        except Exception as e:
+            print("pause after sleep.")
         # print(body)
         if 200 == res:
+            send_mail("macbook有货了", 'hello world', "644540267@qq.com")
             print("{} now 有货了".format(localtime))
         time.sleep(10)
 
 if __name__ == "__main__":
     init_signal()
+    # send_mail("macbook有货了", 'hello world', "644540267@qq.com")
     main()
