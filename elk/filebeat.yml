@@ -1,0 +1,25 @@
+output:
+  logstash:
+    enabled: true
+    hosts:
+      - elk:5044
+    timeout: 15
+    ssl:
+      certificate_authorities:
+          - /etc/certs/logstash-beats.crt
+
+filebeat:
+  inputs:
+    # -
+    #   paths:
+    #     - /var/log/syslog
+    #     - /var/log/auth.log
+    #   document_type: syslog
+    -
+      paths:
+        - "/var/log/ceph/*.log"
+      fields_under_root: true
+      document_type: cephlog
+
+      fields:
+        type: cephlog
