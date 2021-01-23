@@ -11,6 +11,16 @@
 
 """
 import logging
+logger = logging.getLogger("s_logger")
+# print(logger)
+# print(logger.loggerDict)
+# print(logging.getLogger())
+logger.setLevel(logging.CRITICAL)
+# logging.basicConfig(level=logging.ERROR)
 
-logger = logging.getLogger(__name__)
+# logging.error("error inner lib")
+# logging.info("error inner lib")
+# logging.critical("error inner lib")
+# logging.debug("error inner lib")
+# logger = logging.getLogger(__name__)
 
