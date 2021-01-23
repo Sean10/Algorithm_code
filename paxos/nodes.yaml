@@ -1,0 +1,4 @@
+nodes:
+  - localhost:6789
+  - localhost:6790
+  - localhost:6791
