@@ -10,6 +10,9 @@
 
 
 """
+import sys
+sys.path.append("..")
+
 import logging
 # from logging import StreamHandler
 from lib2pc import coordinator

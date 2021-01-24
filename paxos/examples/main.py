@@ -10,7 +10,8 @@
 
 
 """
-
+import sys
+sys.path.append("..")
 from lib2pc.server import create_server
 import argparse
 
