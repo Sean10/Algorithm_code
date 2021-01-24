@@ -13,6 +13,8 @@
 import logging
 # from logging import StreamHandler
 from lib2pc import coordinator
+import argparse
+import sys
 
 logger = logging.getLogger("root")
 logger.handlers = []
@@ -27,5 +29,11 @@ logger.setLevel(logging.DEBUG)
 
 
 if __name__ == "__main__":
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument("--shutdown", help="shutdown ", action='store_true')
+    args = argparser.parse_args()
+    if args.shutdown:
+        coordinator.shutdown()
+        sys.exit(0)
     logger.info("debug client init")
-    coordinator.write("123")
+    coordinator.write("new", "123")

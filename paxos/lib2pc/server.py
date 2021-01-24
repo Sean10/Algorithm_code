@@ -12,11 +12,27 @@
 """
 
 import flask
-from .service import service
+from flask import request
+from .service import service, FileNoSQL
 
 
 def create_server(hostname):
     server = flask.Flask(__name__)
-    server.register_blueprint(service)
     server.config["hostname"] = hostname
+    FileNoSQL.init_app(hostname)
+    server.register_blueprint(service)
+
+    def shutdown_server():
+        func = request.environ.get('werkzeug.server.shutdown')
+        if func is None:
+            raise RuntimeError('Not running with the Werkzeug Server')
+        func()
+
+
+    @server.route("/shutdown", methods=['POST'])
+    def shutdown():
+        shutdown_server()
+        return 'Server shutting down...'
+
+
     return server
