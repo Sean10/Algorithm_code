@@ -77,7 +77,16 @@ brew install rocksdb
 * 实现事务
 # 3pc
 
+# paxos
+## promise阶段, 收到相同的提案的时候呢?
+## 当提案被接收, 是向所有的节点发送任务,还是只向接受的部分发送呢?
+## accepted_value这个值怎么理解呢? 为什么我看到的文章里写的都是整数, 这个东西到底是不是提案内容呢?
+### 应该可以是任意内容, 主要指代的是一个对象
+## accepted之后的, done,是否还需要proposaler节点发送done请求给其他节点呢?还是说各节点给出phase2_accpted的响应时就进行了存储操作?
+### 这个learner的过程到底怎么实现呢?
+
 # todo
+
 * 基于文件系统的分布式写入一致.
 * 基于rocksdb的分布式写入一致.
 * 实现基本的2PC
@@ -102,4 +111,4 @@ brew install rocksdb
 
 
 # Reference
-1. 
+1. [理解分布式一致性:Paxos协议之Basic Paxos \- flydean \- 博客园](https://www.cnblogs.com/flydean/p/12680415.html)

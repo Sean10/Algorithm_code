@@ -12,7 +12,7 @@
 """
 import sys
 sys.path.append("..")
-from lib2pc.server import create_server
+from libpaxos.server import create_server
 import argparse
 
 if __name__ == "__main__":
