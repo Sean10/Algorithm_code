@@ -44,7 +44,7 @@ class CatalogInstance:
     }
 
 def main_method(self) -> None:
-    sefl._instance_method_choices[self.param].__get__(self))()
+    self._instance_method_choices[self.param].__get__(self))()
 
 class CatalogClass:
     x1 = "x1"
