@@ -1,0 +1,4 @@
+FROM sean10/centos_ceph_clion:v1.0
+ENV container docker
+VOLUME [ "/sys/fs/cgroup" ]
+CMD ["/usr/sbin/init"]
