@@ -22,7 +22,8 @@ docker commit 62aa128c8711 sean10/centos_ceph_clion:v1.0
 这个镜像里已经enable了sshd, 且改成了我自己的sshd配置方式
 用下面这个运行就可以了
 docker run --name centos_ceph_clion --privileged=true --cap-add sys_ptrace -p127.0.0.1:2222:22 -it sean10/centos_ceph_clion:v1.0  /usr/sbin/init
-
+我使用了--it就可以替换dockerfile里的CMD选项了.
+docker run -d --name centos_ceph_clion --privileged=true --cap-add sys_ptrace -p127.0.0.1:2222:22 sean10/centos_ceph_clion:v1.1.0
 
 ```
 
