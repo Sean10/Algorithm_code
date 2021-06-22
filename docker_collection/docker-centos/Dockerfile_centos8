@@ -1,0 +1,17 @@
+FROM centos:8
+ENV container docker
+RUN dnf -y update \
+ && dnf -y install openssh-server  passwd \
+    git 
+RUN ssh-keygen -A
+
+RUN ( \
+    echo 'PermitRootLogin yes'; \
+    echo 'PasswordAuthentication yes'; \
+    echo 'Subsystem sftp /usr/libexec/openssh/sftp-server'; \
+  ) > /etc/ssh/sshd_config_test_clion
+RUN useradd -m sean \
+  && yes FightonFighton | passwd sean
+COPY ./entry.sh /opt/entry.sh
+RUN chmod 777 /opt/entry.sh
+CMD ["/opt/entry.sh"]

@@ -57,3 +57,22 @@ docker run --name test_centos --privileged=true --cap-add sys_ptrace -p127.0.0.1
 Failed to get D-Bus connection: Operation not permitted
 ```
 
+
+# Centos8报错
+## System has not been booted with systemd as init system (PID 1). Can't operate
+``` bash
+试了下, 暂时先不用Systemd运行下. 好像是运行了systemd替换过的init之后才能执行systemctl enable. 也就是说我得先启动, 然后在镜像里做操作.比较麻烦.
+
+docker run --name centos_8  --privileged=true --cap-add sys_ptrace -p127.0.0.1:2223:22 -it -v /Users/sean10/Code/ceph/pacific:/ceph centos-8 /bin/bash
+
+```
+
+## Couldn't find an alternative telinit implementation to spawn.
+
+## Cannot determine cgroup we are running in: No medium found
+Failed to allocate manager object: No medium found
+有人说疑似是/sys/fs/cgroup权限的问题, 那我怀疑是不是我已经有一个Docker挂载了这个导致的?
+
+哦, 无关...
+
+我直接不启动systemd就完事了, 直接用sshd作为主进程就行.
