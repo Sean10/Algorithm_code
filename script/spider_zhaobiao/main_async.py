@@ -46,12 +46,10 @@ async def html(url: str, params: Dict) ->str:
 
 async def read_one(url, params):
     req = await html(url, params)
-    # print(req)
     content = BeautifulSoup(req, 'html.parser')
         # with open("output.html", "w", encoding='utf-8') as f:
         #     f.write(content.prettify())
     ans = content.select('div.vT-srch-result-list  li')
-    print(len(ans))
     for item in ans:
         # print(item)
         title = item.a.text.strip()
@@ -90,7 +88,7 @@ def main2():
         'page_index': page_num,
         'bidSort': '0',
         'pinMu': '0',
-        'bidType': '1',
+        'bidType': '7',
         'kw': keyword,
         'start_time': start_time,
         'end_time': end_time,
