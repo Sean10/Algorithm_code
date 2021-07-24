@@ -18,9 +18,9 @@ logger = logging.getLogger("s_logger")
 logger.setLevel(logging.CRITICAL)
 # logging.basicConfig(level=logging.ERROR)
 
-# logging.error("error inner lib")
+logger.error("error inner lib")
 # logging.info("error inner lib")
-# logging.critical("error inner lib")
+logging.critical("error inner lib")
 # logging.debug("error inner lib")
 # logger = logging.getLogger(__name__)
 

@@ -1,0 +1,48 @@
+version: 1
+formatters:
+  brief:
+    format: "%(message)s"
+    # configuration for formatter with id 'brief' goes here
+  precise:
+    format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+  precise_ab:
+    format: "ab  %(asctime)s - %(name)s - %(levelname)s - %(message)s"
+    # configuration for formatter with id 'precise' goes here
+handlers:
+  h1: #This is an id
+   # configuration of handler with id 'h1' goes here
+    formatter: brief
+    class: logging.StreamHandler
+  h2: #This is another id
+   # configuration of handler with id 'h2' goes here
+    formatter: precise
+    class: logging.StreamHandler
+    level: DEBUG
+  handler_a:
+    formatter: precise
+    class: logging.StreamHandler
+    level: DEBUG
+  handler_a_b:
+    formatter: precise_ab
+    class: logging.StreamHandler
+    level: DEBUG
+loggers:
+  root:
+    # other configuration for logger 'foo.bar.baz'
+    handlers:
+    - h2
+    level: ERROR
+  new:
+    handlers:
+    - h2
+    level: DEBUG
+  a:
+    handlers:
+    - handler_a
+    level: DEBUG
+    propagate: yes
+  a.b:
+    handlers:
+      - handler_a_b
+    level: DEBUG
+    propagate: yes
