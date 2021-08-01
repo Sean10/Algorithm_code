@@ -17,7 +17,7 @@ handlers:
    # configuration of handler with id 'h2' goes here
     formatter: precise
     class: logging.StreamHandler
-    level: DEBUG
+    level: ERROR
   handler_a:
     formatter: precise
     class: logging.StreamHandler
@@ -26,6 +26,14 @@ handlers:
     formatter: precise_ab
     class: logging.StreamHandler
     level: DEBUG
+  handler_propagate:
+    formatter: precise
+    class: logging.StreamHandler
+    level: DEBUG
+  handler_propagate_children:
+    formatter: precise
+    class: logging.StreamHandler
+    level: ERROR
 loggers:
   root:
     # other configuration for logger 'foo.bar.baz'
@@ -44,5 +52,18 @@ loggers:
   a.b:
     handlers:
       - handler_a_b
+    level: ERROR
+    propagate: yes
+  propagate_logger:
+    handlers:
+      - handler_propagate
+    level: DEBUG
+    propagate: no
+  propagate_logger.child:
+    handlers: []
+    level: DEBUG
+    propagate: yes
+  "*.public":
+    handlers: []
     level: DEBUG
     propagate: yes
