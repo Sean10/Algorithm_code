@@ -27,16 +27,15 @@ import rehypeStringify from 'rehype-stringify'
 
 let data = fs.readFileSync("example.md")
 
+
+
 let node = unified()
   .use(remarkParse)
-//   .use(remarkGfm)
-//   .use(remarkRehype)
-//   .use(rehypeStringify)
+  // .use(remarkGfm)
+  .use(remarkRehype, {"allowDangerousHtml": true})
+  .use(rehypeStringify, {"allowDangerousHtml": true})
   .parse(data)
-//   .then((file) => {
-//     console.log(file)
-// })
+
 
 // console.log(JSON.stringify(node, null, 4));
-
 fs.writeFileSync("output.json", JSON.stringify(node, null, 4))
