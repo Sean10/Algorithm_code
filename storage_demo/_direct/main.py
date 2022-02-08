@@ -1,17 +1,27 @@
 from logger import log
+import decoration
 import logging
 import os
 import mmap
+import time
 
+
+@decoration.time_count
 def main_func(file, count, *args, **kwargs):
+    """
+    入口
+    """
     log(logging.INFO, "start")
     log(logging.INFO, file)
-    # for i in range(count):
     write(file, count)
     log(logging.INFO, "end")
 
 
 def write(filepath, count):
+    """
+    real write func
+    实际的写请求
+    """
     log(logging.INFO, f"file: {filepath}")
     # filepath = os.path.join(os.curdir, filepath)
     fd = os.open(filepath, os.O_DIRECT | os.O_WRONLY |os.O_CREAT)

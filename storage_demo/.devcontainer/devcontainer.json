@@ -44,10 +44,11 @@
 		"sshd": "latest"
 	},
 	"containerEnv": {
-		"http_proxy": "http://192.168.91.58:7890",
-		"https_proxy": "http://192.168.91.58:7890"
+		"http_proxy": "http://192.168.31.44:7890",
+		"https_proxy": "http://192.168.31.44:7890"
 	},
 	"runArgs": [
+		"--privileged",
 		"--cap-add=SYS_PTRACE",
 		"--security-opt",
 		"seccomp=unconfined"
