@@ -1,3 +1,6 @@
 [submodule ".hammerspoon"]
 	path = .hammerspoon
 	url = https://github.com/Sean10/awesome-hammerspoon.git
+[submodule "cpulimit"]
+	path = cpulimit
+	url = https://github.com/opsengine/cpulimit.git
