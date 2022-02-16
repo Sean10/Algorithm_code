@@ -3,6 +3,7 @@ import argparse
 import _direct
 import _async
 import _aio
+import _rbd
 
 
 def parser():
@@ -22,6 +23,9 @@ def parser():
 
     parser_aio = subparsers.add_parser("aio")
     parser_aio.set_defaults(func=_aio.main_func)
+
+    parser_rbd = subparsers.add_parser("rbd")
+    parser_rbd.set_defaults(func=_rbd.main_func)
 
     args = argparser.parse_args()
     return args
