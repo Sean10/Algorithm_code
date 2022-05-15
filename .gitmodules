@@ -4,3 +4,9 @@
 [submodule "cpulimit"]
 	path = cpulimit
 	url = https://github.com/opsengine/cpulimit.git
+[submodule "storage_io_c/rocksdb"]
+	path = storage_io_c/rocksdb
+	url = https://github.com/facebook/rocksdb.git
+[submodule "storage_io_c/gflags"]
+	path = storage_io_c/gflags
+	url = https://github.com/gflags/gflags.git
