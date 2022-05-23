@@ -1,4 +1,10 @@
 
+
+python3.7及以上版本, 主要依赖项
+
+* argparser
+
+
 ``` bash
 
 echo 0 > /proc/sys/vm/dirty_ratio 

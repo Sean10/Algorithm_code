@@ -24,13 +24,13 @@ def write(filepath, count):
     """
     log(logging.INFO, f"file: {filepath}")
     # filepath = os.path.join(os.curdir, filepath)
-    fd = os.open(filepath, os.O_DIRECT | os.O_WRONLY |os.O_CREAT)
+    fd = os.open(filepath, os.O_DIRECT | os.O_WRONLY | os.O_CREAT)
     log(logging.DEBUG, f"fd: {fd}")
     if fd < 0:
         log(logging.ERROR, f"fail to open {filepath}")
 
     m = mmap.mmap(-1, 4096)
-    data = "1"*4096
+    data = "1" * 4096
     buff = data.encode()
     m.write(buff)
 
@@ -39,4 +39,3 @@ def write(filepath, count):
         ret = os.write(fd, m)
     log(logging.INFO, f"os write ret: {ret}")
     os.close(fd)
-
