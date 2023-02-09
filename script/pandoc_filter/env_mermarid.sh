@@ -1,0 +1,1 @@
+export MERMAID_FILTER_THEME=forest;
