@@ -1,0 +1,4 @@
+
+
+class WrapError(Exception):
+    pass
