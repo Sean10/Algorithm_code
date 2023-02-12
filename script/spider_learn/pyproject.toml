@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "spider"
+version = "0.1.0"
+description = ""
+authors = ["sean10 <sean10reborn@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.9"
+scrapy = "^2.8.0"
+pillow = "^9.4.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.source]]
+name = "tsinghua"
+default = true
+url = "https://pypi.tuna.tsinghua.edu.cn/simple"
