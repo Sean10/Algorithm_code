@@ -9,7 +9,10 @@ import scrapy
 class TutorialItem(scrapy.Item):
     # define the fields for your item here like:
     # name = scrapy.Field()
-    pass
+    name = scrapy.Field()
+    link = scrapy.Field()
+
+
 
 class ImageItem(scrapy.Item):
     # define the fields for your item here like:
