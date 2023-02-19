@@ -69,7 +69,8 @@ DEFAULT_REQUEST_HEADERS = {
 
 ITEM_PIPELINES = {
 #    'meishi.pipelines.MeishiPipeline': 300,
-    'scrapy.pipelines.images.ImagesPipeline':1
+    # 'scrapy.pipelines.images.ImagesPipeline':1
+    "tutorial.pipelines.CustomImagePipeline": 1
 }
 IMAGES_STORE = '/root/Algorithm_code/script/spider_learn/images'
 IMAGES_URLS_FIELD = 'src'
