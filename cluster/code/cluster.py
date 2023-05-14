@@ -4,7 +4,7 @@ import functools
 import heapq
 import itertools
 import logging
-import Queue
+from queue import Queue
 import random
 import threading
 
@@ -66,6 +66,7 @@ class Node(object):
             fn = getattr(comp, handler_name)
             fn(sender=sender, **message._asdict())
 
+@functools.total_ordering
 class Timer(object):
 
     def __init__(self, expires, address, callback):
@@ -74,8 +75,20 @@ class Timer(object):
         self.callback = callback
         self.cancelled = False
 
-    def __cmp__(self, other):
-        return cmp(self.expires, other.expires)
+    def __eq__(self, other):
+        return self.expires == other.expires
+    
+    def __lt__(self, other):
+        return self.expires < other.expires
+    
+    def __gt__(self, other):
+        return self.expires > other.expires
+
+    def __ge__(self, other):
+        return self.expires >= other.expires
+
+    def __le__(self, other):
+        return self.expires <= other.expires
 
     def cancel(self):
         self.cancelled = True
@@ -198,7 +211,7 @@ class Replica(Role):
 
     def do_Invoke(self, sender, caller, client_id, input_value):
         proposal = Proposal(caller, client_id, input_value)
-        slot = next((s for s, p in self.proposals.iteritems() if p == proposal), None)
+        slot = next((s for s, p in self.proposals.items() if p == proposal), None)
         # propose, or re-propose if this proposal already has a slot
         self.propose(proposal, slot)
 
@@ -241,7 +254,7 @@ class Replica(Role):
 
     def commit(self, slot, proposal):
         """Actually commit a proposal that is decided and in sequence"""
-        decided_proposals = [p for s, p in self.decisions.iteritems() if s < slot]
+        decided_proposals = [p for s, p in self.decisions.items() if s < slot]
         if proposal in decided_proposals:
             self.logger.info("not committing duplicate proposal %r at slot %d", proposal, slot)
             return  # duplicate
@@ -340,7 +353,7 @@ class Scout(Role):
 
     def update_accepted(self, accepted_proposals):
         acc = self.accepted_proposals
-        for slot, (ballot_num, proposal) in accepted_proposals.iteritems():
+        for slot, (ballot_num, proposal) in accepted_proposals.items():
             if slot not in acc or acc[slot][0] < ballot_num:
                 acc[slot] = (ballot_num, proposal)
 
@@ -352,7 +365,7 @@ class Scout(Role):
             if len(self.acceptors) >= self.quorum:
                 # strip the ballot numbers from self.accepted_proposals, now that it
                 # represents a majority
-                accepted_proposals = dict((s, p) for s, (b, p) in self.accepted_proposals.iteritems())
+                accepted_proposals = dict((s, p) for s, (b, p) in self.accepted_proposals.items())
                 # We're adopted; note that this does *not* mean that no other leader is active.
                 # Any such conflicts will be handled by the commanders.
                 self.node.send([self.node.address],
@@ -490,7 +503,7 @@ class Requester(Role):
 
     def __init__(self, node, n, callback):
         super(Requester, self).__init__(node)
-        self.client_id = self.client_ids.next()
+        self.client_id = next(self.client_ids)
         self.n = n
         self.output = None
         self.callback = callback
