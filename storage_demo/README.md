@@ -1,5 +1,6 @@
 
 
+
 python3.7及以上版本, 主要依赖项
 
 * argparser
@@ -20,7 +21,23 @@ fio --filename=./file --direct=1   --rw=randwrite --refill_buffers --norandommap
 
 direct大概单进程5000IOPS
 
+# todo
 
+* log 初始化
+
+# rbd
+
+使用方式
+``` bash
+python3 tool.py  --io-type read --count 100000 -d 16  rbd --conf ./ceph.conf --pool pool1 --image wc1 --image-count 15
+```
+
+* 支持指定rados名字进行筛选
+* 主要目标, 仅运行能够落到指定osd上作为主pg的行为
+    * 或者通过list指定pg的对象, 然后直接去遍历这部分对象.
+* 计数器目前统计的性能值偏高, 不过也基本做到把集群的读性能搭起来了?
+    * 好吧, 差远了. 用fio能跑10W. cpu能跑掉10个核
+    * 不知道是不是现在访问的对象太过集中了?
 
 # 测试结果
 ## 背景
