@@ -35,6 +35,11 @@ handlers:
     class: logging.StreamHandler
     level: ERROR
 loggers:
+# here is RootLogger
+  '':
+    handlers:
+    - h2
+    level: DEBUG
   root:
     # other configuration for logger 'foo.bar.baz'
     handlers:
