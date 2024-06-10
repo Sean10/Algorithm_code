@@ -138,4 +138,43 @@
         images
     };
     console.log('Congrats! Check out window.exportedData.');
+
+    function convertTimestamp(timestamp) {
+        const date = new Date(timestamp);
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        const seconds = String(date.getSeconds()).padStart(2, '0');
+        return `${year}${month}${day}-${hours}${minutes}${seconds}`;
+      }
+
+    var importJs=document.createElement('script') 
+    importJs.setAttribute("type","text/javascript") 
+    importJs.setAttribute("src", "https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.0/jszip.min.js")
+    document.getElementsByTagName("head")[0].appendChild(importJs)
+    var importFileSaver=document.createElement('script') 
+    importFileSaver.setAttribute("type","text/javascript") 
+    importFileSaver.setAttribute("src", "https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.4/FileSaver.js")
+    document.getElementsByTagName("head")[0].appendChild(importFileSaver)
+
+    let files2 = [];
+    for (let note of window.exportedData.notes) {
+        const name_val = convertTimestamp(note["createDate"]) + note["snippet"].slice(0,10).replace(' ', '_') + '.md'
+        obj = {name: name_val, content: note["content"]}
+        console.log(name_val)
+
+        files2.push(obj)
+    }
+
+    // 前端处理并打包文件
+    // zip = new JSZip();
+    let zip2 = new JSZip();
+    files2.forEach((file) => zip2.file(file.name, file.content));
+
+    // 生成压缩包并下载
+    zip2.generateAsync({type: "blob"}).then((content) => {
+    saveAs(content, "files.zip");
+    });
 })();
