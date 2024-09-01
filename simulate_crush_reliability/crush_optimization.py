@@ -31,6 +31,7 @@ pgid可能会是上千个
 active_set中的osd可能是几百个中选3个, 或选4个, 或选5个
 
 要求使用pysat库计算crush map的期望均衡结果, 并能够根据输出的pgid->active_set结果, 计算出如何从原始的pgid->active_set结果, 转换到期望的pgid->active_set结果
+注意这个过程中active_set的osd数量是不允许减少的, 因为这代表副本数, 不允许冗余降级
 这个转换过程可以接受下述格式的命令
 upmap 1.0 [0, 2, 1]  # 代表将1.0的active_set从[0, 1, 2]转换为[0, 2, 1], 直接填写最终结果即可
 
@@ -39,71 +40,66 @@ upmap 1.0 [0, 2, 1]  # 代表将1.0的active_set从[0, 1, 2]转换为[0, 2, 1], 
 """
 
 import itertools
-from pysat.solvers import Glucose3
-from pysat.formula import CNF
+from pysat.formula import WCNF
+from pysat.examples.rc2 import RC2
 from collections import defaultdict
 
 def calculate_balanced_pg_distribution(pg_distribution):
-    osd_counts = defaultdict(lambda: {'primary': 0, 'replica': 0, 'total': 0})
     osd_set = set()
     pg_count = len(pg_distribution)
     
-    for pg, osds in pg_distribution.items():
+    for osds in pg_distribution.values():
         osd_set.update(osds)
-        osd_counts[osds[0]]['primary'] += 1
-        for osd in osds[1:]:
-            osd_counts[osd]['replica'] += 1
-        for osd in osds:
-            osd_counts[osd]['total'] += 1
     
     osd_count = len(osd_set)
-    replica_count = len(next(iter(pg_distribution.values())))
     
-    # 创建SAT求解器
-    cnf = CNF()
-    solver = Glucose3()
+    # 创建WCNF
+    wcnf = WCNF()
     
     # 创建变量
     var_map = {}
-    for pg in pg_distribution:
+    for pg, osds in pg_distribution.items():
+        replica_count = len(osds)
         for osd in osd_set:
             for pos in range(replica_count):
                 var_map[(pg, osd, pos)] = len(var_map) + 1
     
     # 添加硬约束条件
-    # 1. 每个PG必须有指定数量的副本
-    for pg in pg_distribution:
-        cnf.append([var_map[(pg, osd, pos)] for osd in osd_set for pos in range(replica_count)])
+    for pg, osds in pg_distribution.items():
+        replica_count = len(osds)
+        # 1. 每个PG必须保持原有的副本数量
         for pos in range(replica_count):
-            cnf.extend([[-var_map[(pg, osd1, pos)], -var_map[(pg, osd2, pos)]] 
-                        for osd1, osd2 in itertools.combinations(osd_set, 2)])
+            wcnf.append([var_map[(pg, osd, pos)] for osd in osd_set])
+        # 2. 每个位置只能有一个OSD
+        for pos in range(replica_count):
+            wcnf.extend([[-var_map[(pg, osd1, pos)], -var_map[(pg, osd2, pos)]] 
+                         for osd1, osd2 in itertools.combinations(osd_set, 2)])
+        # 3. 每个OSD在一个PG中只能出现一次
+        for osd in osd_set:
+            wcnf.extend([[-var_map[(pg, osd, pos1)], -var_map[(pg, osd, pos2)]] 
+                         for pos1, pos2 in itertools.combinations(range(replica_count), 2)])
     
     # 添加软约束条件（优化目标）
-    soft_clauses = []
-    weights = []
-    
-    # 2. 每个OSD的PG总数应该尽可能接近平均值
-    avg_pgs_per_osd = pg_count * replica_count // osd_count
+    # 4. 每个OSD的PG总数应该尽可能接近平均值
+    avg_pgs_per_osd = sum(len(osds) for osds in pg_distribution.values()) / osd_count
     for osd in osd_set:
-        variables = [var_map[(pg, osd, pos)] for pg in pg_distribution for pos in range(replica_count)]
-        soft_clauses.extend([[v] for v in variables[:avg_pgs_per_osd]])
-        soft_clauses.extend([[-v] for v in variables[avg_pgs_per_osd:]])
-        weights.extend([1] * len(variables))
+        variables = [var_map[(pg, osd, pos)] for pg, osds in pg_distribution.items() for pos in range(len(osds))]
+        for v in variables[:int(avg_pgs_per_osd)]:
+            wcnf.append([v], weight=1)
+        for v in variables[int(avg_pgs_per_osd):]:
+            wcnf.append([-v], weight=1)
     
-    # 3. 每个OSD的主PG数应该尽可能接近平均值
-    avg_primary_pgs_per_osd = pg_count // osd_count
+    # 5. 每个OSD的主PG数应该尽可能接近平均值
+    avg_primary_pgs_per_osd = pg_count / osd_count
     for osd in osd_set:
         variables = [var_map[(pg, osd, 0)] for pg in pg_distribution]
-        soft_clauses.extend([[v] for v in variables[:avg_primary_pgs_per_osd]])
-        soft_clauses.extend([[-v] for v in variables[avg_primary_pgs_per_osd:]])
-        weights.extend([2] * len(variables))  # 给主PG分配更高的权重
+        for v in variables[:int(avg_primary_pgs_per_osd)]:
+            wcnf.append([v], weight=2)  # 给主PG分配更高的权重
+        for v in variables[int(avg_primary_pgs_per_osd):]:
+            wcnf.append([-v], weight=2)  # 给主PG分配更高的权重
     
     # 使用MaxSAT求解器
-    from pysat.examples.rc2 import RC2
-    with RC2(cnf, solver='g3') as rc2:
-        for clause, weight in zip(soft_clauses, weights):
-            rc2.add_soft(clause, weight)
-        
+    with RC2(wcnf) as rc2:
         model = rc2.compute()
         
         if model:
