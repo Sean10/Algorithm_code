@@ -1,8 +1,13 @@
+
+
 # 编译互斥锁示例
 clang++ demo_mutex.cc -std=c++11 -stdlib=libc++
 
 # 编译锁性能对比示例
-clang++ lock_benchmark.cc -std=c++11 -stdlib=libc++ -o lock_benchmark
+
+适用openEuler/centos x86架构环境
+
+g++ lock_benchmark.cc -std=c++11 -stdlib=libc++ -o lock_benchmark
 
 # 对比测试：
 线程数：4
@@ -82,4 +87,58 @@ CPU核心数: 4
 - 最终计数器值: 40000
 - 平均每次加锁操作延迟: 400.63 微秒
 - 每秒操作次数: 2496.07
+```
+
+# 编译死锁测试程序
+g++ mutex_deadlock.cc -std=c++11 -pthread -g -o mutex_deadlock
+g++ spinlock_deadlock.cc -std=c++11 -pthread -g -o spinlock_deadlock
+
+# 运行 perf 分析
+
+```
+perf top -p $(pgrep mutex_deadlock)
+perf top -p $(pgrep spinlock_deadlock)
+```
+
+
+### 死锁时观察perf现象
+
+#### spinlock
+
+```
+
+    PID USER      PR  NI    VIRT    RES    SHR S  %CPU  %MEM     TIME+ COMMAND                                                                                              
+3425891 root      20   0  101004   1936   1752 S 199.3   0.1   3:24.74 spinlock_deadlo   
+
+Samples: 25K of event 'cpu-clock:pppH', Event count (approx.): 6394250000
+Overhead  Command          Shared Object      Symbol
+  99.97%  spinlock_deadlo  spinlock_deadlock  [.] SpinLock::lock
+   0.00%  spinlock_deadlo  [kernel.kallsyms]  [k] __do_page_fault
+   0.00%  spinlock_deadlo  [kernel.kallsyms]  [k] native_write_msr
+   0.00%  spinlock_deadlo  [kernel.kallsyms]  [k] perf_event_mmap
+   0.00%  spinlock_deadlo  [kernel.kallsyms]  [k] queue_work_on
+   0.00%  spinlock_deadlo  ld-2.28.so         [.] _dl_lookup_symbol_x
+   0.00%  spinlock_deadlo  ld-2.28.so         [.] _dl_relocate_object
+   0.00%  spinlock_deadlo  ld-2.28.so         [.] do_lookup_x
+```
+
+#### mutex
+
+```
+3428084 root      20   0  101004   1976   1792 S   0.0   0.1   0:00.00 mutex_deadlock         
+
+Samples: 5  of event 'cpu-clock:pppH', Event count (approx.): 1250000
+Overhead  Command         Shared Object      Symbol
+  40.00%  mutex_deadlock  ld-2.28.so         [.] do_lookup_x
+  20.00%  mutex_deadlock  [kernel.kallsyms]  [k] pfn_pte
+  20.00%  mutex_deadlock  [kernel.kallsyms]  [k] unmapped_area_topdown
+  20.00%  mutex_deadlock  ld-2.28.so         [.] _dl_lookup_symbol_x
+
+[root@VM-16-11-centos ~]# strace -fp 3428084
+strace: Process 3428084 attached with 3 threads
+[pid 3428086] futex(0x6021a0, FUTEX_WAIT_PRIVATE, 2, NULL <unfinished ...>
+[pid 3428085] futex(0x6021e0, FUTEX_WAIT_PRIVATE, 2, NULL <unfinished ...>
+[pid 3428084] futex(0x7f62483cd9d0, FUTEX_WAIT, 3428085, NULL^Cstrace: Process 3428084 detached
+ <detached ...>
+strace: Process 3428085 detached
 ```
