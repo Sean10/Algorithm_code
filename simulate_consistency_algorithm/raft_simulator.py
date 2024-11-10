@@ -1,5 +1,6 @@
 import random
 import time
+from collections import defaultdict
 
 class Node:
     def __init__(self, node_id):
@@ -107,11 +108,67 @@ class PaxosCluster:
         end_time = time.time()
         return end_time - start_time
 
-def simulate(algorithm, num_replicas, consistency_level, num_operations=100, network_delay=0.01, async_delay=0.05):
+class MultiRaftNode(Node):
+    def __init__(self, node_id, shard_count):
+        super().__init__(node_id)
+        self.shard_logs = defaultdict(list)  # 每个分片维护独立的日志
+        self.is_leader_for_shards = [False] * shard_count  # 记录节点在每个分片中的角色
+
+class MultiRaftCluster:
+    def __init__(self, num_nodes, shard_count, consistency_level, network_delay, async_delay):
+        self.nodes = [MultiRaftNode(i, shard_count) for i in range(num_nodes)]
+        self.shard_count = shard_count
+        self.consistency_level = consistency_level
+        self.network_delay = network_delay
+        self.async_delay = async_delay
+        
+        # 为每个分片选择leader
+        for shard_id in range(shard_count):
+            leader = random.choice(self.nodes)
+            leader.is_leader_for_shards[shard_id] = True
+
+    def get_shard_id(self, data):
+        # 简单的分片策略: 根据数据hash值分配到不同分片
+        return hash(data) % self.shard_count
+
+    def get_shard_leader(self, shard_id):
+        for node in self.nodes:
+            if node.is_leader_for_shards[shard_id]:
+                return node
+        return None
+
+    def write(self, data):
+        start_time = time.time()
+        shard_id = self.get_shard_id(data)
+        shard_leader = self.get_shard_leader(shard_id)
+        
+        if self.consistency_level == "strong":
+            # 只在相关分片的节点间同步
+            for node in self.nodes:
+                node.shard_logs[shard_id].append(data)
+                time.sleep(self.network_delay)  # 模拟网络延迟
+        
+        elif self.consistency_level == "eventual":
+            # 最终一致性写入
+            shard_leader.shard_logs[shard_id].append(data)
+            for node in self.nodes:
+                if node != shard_leader:
+                    if random.random() < 0.8:  # 80%的概率立即同步
+                        node.shard_logs[shard_id].append(data)
+                    else:
+                        time.sleep(self.async_delay)  # 模拟延迟同步
+                        node.shard_logs[shard_id].append(data)
+        
+        end_time = time.time()
+        return end_time - start_time
+
+def simulate(algorithm, num_replicas, consistency_level, num_operations=100, network_delay=0.01, async_delay=0.05, shard_count=3):
     if algorithm == "raft":
         cluster = RaftCluster(num_replicas, consistency_level, network_delay, async_delay)
     elif algorithm == "paxos":
         cluster = PaxosCluster(num_replicas, consistency_level, network_delay, async_delay)
+    elif algorithm == "multi-raft":
+        cluster = MultiRaftCluster(num_replicas, shard_count, consistency_level, network_delay, async_delay)
     else:
         raise ValueError("不支持的算法")
     
@@ -143,3 +200,16 @@ print("Raft (2副本高网络延迟):", simulate("raft", 2, "strong", network_de
 # print("Paxos (低延迟):", simulate("paxos", 3, "strong", network_delay=0.05, async_delay=0.01))
 print("Paxos (高网络延迟):", simulate("paxos", 3, "eventual", network_delay=1, async_delay=0.02))
 print("Paxos (2副本高网络延迟):", simulate("paxos", 2, "strong", network_delay=1, async_delay=0.02))
+
+# 添加Multi-Raft的模拟
+print("\nMulti-Raft算法:")
+print("3副本3分片(强一致性)平均响应时间:", simulate("multi-raft", 3, "strong", shard_count=3))
+print("3副本3分片(最终一致性)平均响应时间:", simulate("multi-raft", 3, "eventual", shard_count=3))
+print("2副本2分片(强一致性)平均响应时间:", simulate("multi-raft", 2, "strong", shard_count=2))
+
+# 高延迟场景下的Multi-Raft测试
+print("\n使用自定义延时参数(Multi-Raft):")
+print("Multi-Raft (高网络延迟):", 
+      simulate("multi-raft", 3, "eventual", network_delay=1, async_delay=0.1, shard_count=3))
+print("Multi-Raft (2副本高网络延迟):", 
+      simulate("multi-raft", 2, "strong", network_delay=1, async_delay=0.1, shard_count=2))
