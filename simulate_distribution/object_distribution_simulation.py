@@ -198,7 +198,7 @@ class TieredCopysetSimulator(ObjectDistributionSimulator):
         done = False
         while not done:
             done = True
-            # 按scatter width排序��点
+            # 按scatter width排序点
             self.nodes.sort(key=lambda x: x.scatter_width)
             
             for node in self.nodes:

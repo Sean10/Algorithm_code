@@ -35,6 +35,13 @@ class SimulationRunner:
             self.simulators = {k: v for k, v in all_simulators.items() if k in enabled_algorithms}
         else:
             self.simulators = all_simulators
+        
+        # 装饰run_simulations方法
+        self.run_simulations = PerformanceAnalyzer.profile_cpu(self.analyzer)(self.run_simulations)
+
+    def enable_profiling(self, enable=True):
+        """启用或禁用性能分析"""
+        self.analyzer.enable_profiling = enable
 
     def run_simulations(self, distribution_type):
         """运行模拟"""
@@ -104,7 +111,8 @@ class SimulationRunner:
                 print(f"  Stability Score: {metrics['stability_score']:.2f}")
 
         # 打印整体性能分析
-        self.analyzer.print_summary()
+        self.analyzer.print_cpu_stats()
+        self.analyzer.print_line_stats()
 
 def main():
     print("Starting Object Distribution Simulation...")

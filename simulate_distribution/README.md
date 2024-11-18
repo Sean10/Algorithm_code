@@ -38,7 +38,7 @@ python -m object_distribution.cli
 
 2. 自定义配置：
 ```bash
-python -m object_distribution.cli --num-objects 1000000 --num-nodes 200 \
+python -m object_distribution.cli --num-objects 100000 --num-nodes 200 \
     --distributions normal zipf \
     --algorithms Hash DHT Dynamo
 ```
@@ -175,6 +175,17 @@ runner.run_complete_analysis()
    - 性能分析结果
    - 负载均衡统计
    - 节点变化统计
+
+## 性能优化
+
+1. 多进程并行计算
+   - 自动检测CPU核心数
+   - 数据分块并行处理
+   - 避免GIL锁限制
+
+2. 向量化操作
+   - 使用NumPy数组操作
+   - 减少Python循环
 
 ## 结果分析
 

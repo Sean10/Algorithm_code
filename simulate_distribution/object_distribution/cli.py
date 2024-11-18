@@ -41,6 +41,12 @@ def parse_args():
     parser.add_argument('--no-plots', action='store_true',
                       help='Disable plot generation')
     
+    # 添加性能分析选项
+    parser.add_argument('--profile', action='store_true',
+                      help='Enable detailed CPU profiling')
+    parser.add_argument('--profile-lines', action='store_true',
+                      help='Enable line-by-line profiling')
+    
     return parser.parse_args()
 
 def save_metrics(metrics, output_dir):
@@ -64,6 +70,10 @@ def main():
         enabled_algorithms=args.algorithms,
         num_processes=args.num_processes
     )
+    
+    # 如果启用了性能分析，设置profiling
+    if args.profile:
+        runner.enable_profiling(True)
     
     # 运行模拟
     metrics = {}
@@ -100,6 +110,14 @@ def main():
     
     # 打印性能分析总结
     runner.analyzer.print_summary()
+    
+    # 如果启用了性能分析，打印详细信息
+    if args.profile or args.profile_lines:
+        print("\nPerformance Analysis:")
+        if args.profile:
+            runner.analyzer.print_cpu_stats()
+        if args.profile_lines:
+            runner.analyzer.print_line_stats()
 
 if __name__ == '__main__':
     main() 

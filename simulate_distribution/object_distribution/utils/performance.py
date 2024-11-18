@@ -3,10 +3,58 @@ import numpy as np
 from functools import wraps
 import psutil
 import os
+import cProfile
+import pstats
+import io
+from line_profiler import LineProfiler
 
 class PerformanceAnalyzer:
     def __init__(self):
         self.metrics = {}
+        self.profiler = LineProfiler()
+        self.cpu_profiler = cProfile.Profile()
+        self.enable_profiling = False
+        
+    @staticmethod
+    def profile_cpu(analyzer=None):
+        """CPU性能分析装饰器"""
+        def decorator(func):
+            @wraps(func)
+            def wrapper(*args, **kwargs):
+                if analyzer and analyzer.enable_profiling:
+                    analyzer.cpu_profiler.enable()
+                    result = func(*args, **kwargs)
+                    analyzer.cpu_profiler.disable()
+                else:
+                    result = func(*args, **kwargs)
+                return result
+            return wrapper
+        return decorator
+    
+    def profile_line(self, func):
+        """行级性能分析装饰器"""
+        self.profiler.add_function(func)
+        @wraps(func)
+        def wrapper(*args, **kwargs):
+            return func(*args, **kwargs)
+        return wrapper
+
+    def print_cpu_stats(self, top_n=10):
+        """打印CPU统计信息"""
+        if not self.enable_profiling:
+            print("CPU profiling was not enabled")
+            return
+            
+        s = io.StringIO()
+        stats = pstats.Stats(self.cpu_profiler, stream=s).sort_stats('cumulative')
+        stats.print_stats(top_n)
+        print("\nCPU Profiling Results:")
+        print("-" * 50)
+        print(s.getvalue())
+        
+    def print_line_stats(self):
+        """打印行级统计信息"""
+        self.profiler.print_stats()
 
     def measure_time(self, func_name):
         """装饰器：测量函数执行时间"""

@@ -36,41 +36,101 @@ class TieredCopysetSimulator(BaseSimulator):
 
     def build_copysets(self):
         """构建满足要求的copysets"""
-        done = False
-        while not done:
-            done = True
-            self.nodes.sort(key=lambda x: x.scatter_width)
+        # 预处理：将节点分组，提高查找效率
+        primary_nodes = [n for n in self.nodes if n.tier == "primary"]
+        backup_nodes = [n for n in self.nodes if n.tier == "backup"]
+        
+        if not primary_nodes or not backup_nodes:
+            raise RuntimeError("无法创建copyset：需要同时具有主节点和备份节点")
+        
+        target_copysets = min(self.virtual_nodes, len(primary_nodes) * 3)
+        attempts = 0
+        max_attempts = self.num_nodes * 5  # 减少最大尝试次数以提高性能
+        
+        while len(self.copysets) < target_copysets and attempts < max_attempts:
+            attempts += 1
             
-            for node in self.nodes:
-                if node.scatter_width >= self.virtual_nodes:
-                    continue
+            # 选择scatter width最小的主节点作为起始点
+            available_primary = [n for n in primary_nodes if n.scatter_width < self.virtual_nodes]
+            if not available_primary:
+                break
                 
-                copyset = Copyset()
+            start_node = min(available_primary, key=lambda x: x.scatter_width)
+            copyset = Copyset()
+            copyset.add_node(start_node)
+            
+            # 快速选择剩余的主节点
+            remaining_primary = [n for n in primary_nodes 
+                               if n.id != start_node.id and 
+                               n.scatter_width < self.virtual_nodes]
+            
+            # 选择scatter width最小的主节点
+            needed_primary = self.replicas - 2  # 减去起始节点和一个备份节点
+            if remaining_primary and needed_primary > 0:
+                selected = sorted(remaining_primary, key=lambda x: x.scatter_width)[:needed_primary]
+                for node in selected:
+                    copyset.add_node(node)
+            
+            # 选择scatter width最小的备份节点
+            available_backup = [n for n in backup_nodes if n.scatter_width < self.virtual_nodes]
+            if available_backup:
+                backup_node = min(available_backup, key=lambda x: x.scatter_width)
+                copyset.add_node(backup_node)
+            
+            # 验证并添加copyset
+            if (copyset.size() == self.replicas and 
+                self.check_tier(copyset) and 
+                self.did_not_appear(copyset)):
+                self.copysets.append(copyset)
+                self._update_scatter_width(copyset)
+        
+        # 如果没有创建足够的copysets，使用简化的备用策略
+        if len(self.copysets) < self.virtual_nodes // 2:
+            self._create_simple_copysets(primary_nodes, backup_nodes)
+
+    def _create_simple_copysets(self, primary_nodes, backup_nodes):
+        """创建简单的copyset作为备用方案"""
+        target = self.virtual_nodes - len(self.copysets)
+        attempts = 0
+        max_attempts = target * 2
+        
+        while len(self.copysets) < self.virtual_nodes and attempts < max_attempts:
+            attempts += 1
+            copyset = Copyset()
+            
+            # 随机选择主节点，但优先选择scatter width较小的
+            primary_candidates = sorted(primary_nodes, key=lambda x: x.scatter_width)
+            selected_primary = primary_candidates[:self.replicas-1]
+            
+            if len(selected_primary) < self.replicas-1:
+                continue
+                
+            for node in selected_primary:
                 copyset.add_node(node)
+            
+            # 随机选择一个备份节点
+            backup_candidates = sorted(backup_nodes, key=lambda x: x.scatter_width)
+            if not backup_candidates:
+                continue
                 
-                candidates = sorted(self.nodes, key=lambda x: x.scatter_width)
-                for candidate in candidates:
-                    if candidate.id == node.id:
-                        continue
-                    
-                    copyset.add_node(candidate)
-                    if copyset.size() == self.replicas:
-                        if self.check_tier(copyset) and self.did_not_appear(copyset):
-                            self.copysets.append(copyset)
-                            self._update_scatter_width(copyset)
-                            done = False
-                            break
-                        copyset.remove_node(candidate)
+            copyset.add_node(backup_candidates[0])
+            
+            if self.did_not_appear(copyset):
+                self.copysets.append(copyset)
+                self._update_scatter_width(copyset)
 
     def _update_scatter_width(self, copyset):
-        """更新节点的scatter width"""
+        """优化的scatter width更新方法"""
+        # 使用集合操作提高性能
+        node_ids = {n.id for n in copyset.nodes}
         for node in copyset.nodes:
             self.node_to_copysets[node.id].append(copyset)
+            # 只更新新添加的连接
+            other_nodes = node_ids - {node.id}
             node.scatter_width = len(set(
-                other_node.id 
-                for cs in self.node_to_copysets[node.id]
-                for other_node in cs.nodes 
-                if other_node.id != node.id
+                n_id for cs in self.node_to_copysets[node.id]
+                for n in cs.nodes
+                if (n_id := n.id) != node.id
             ))
 
     def _parallel_tiered_mapping(self, chunk, copysets):

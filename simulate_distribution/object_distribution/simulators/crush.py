@@ -70,15 +70,30 @@ class CrushSimulator(BaseSimulator):
 
     def _select_bucket_items(self, bucket, value, count):
         """从bucket中选择指定数量的项"""
+        if count > len(bucket['items']):
+            count = len(bucket['items'])  # 如果请求数量超过可用项，则返回所有可用项
+        
         selected = []
         r = 0
-        while len(selected) < count:
+        max_attempts = len(bucket['items']) * 3  # 设置最大尝试次数
+        attempts = 0
+        
+        while len(selected) < count and attempts < max_attempts:
             hash_value = crush_hash(value, r)
             pos = hash_value % len(bucket['items'])
             item = bucket['items'][pos]
             if item not in selected:
                 selected.append(item)
             r += 1
+            attempts += 1
+        
+        # 如果达到最大尝试次数仍未找到足够的项，随机选择剩余的项
+        while len(selected) < count:
+            remaining = [item for item in bucket['items'] if item not in selected]
+            if not remaining:
+                break
+            selected.append(np.random.choice(remaining))
+        
         return selected
 
     def _parallel_crush(self, chunk, replicas=3):
@@ -101,11 +116,11 @@ class CrushSimulator(BaseSimulator):
         
         return np.array(results)
 
-    def crush_mapping(self, objects, replicas=3):
+    def crush_mapping(self, objects):
         """使用多进程进行CRUSH映射"""
         with mp.Pool(self.num_processes) as pool:
             chunks = self._split_data(objects)
-            func = partial(self._parallel_crush, replicas=replicas)
+            func = partial(self._parallel_crush)
             results = pool.map(func, chunks)
         return np.concatenate(results)
 
