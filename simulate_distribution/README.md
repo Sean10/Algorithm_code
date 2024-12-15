@@ -16,6 +16,19 @@
 5. 分析节点数增加时映射变化的情况。
 6. 提供命令行接口进行灵活配置。
 
+## 测试
+
+### 测试目录
+
+`object_distribution/tests/` 目录包含了针对不同映射算法的单元测试。每个测试文件对应一个映射算法，确保算法的正确性和稳定性。
+
+- `test_crush.py`: 测试CRUSH映射算法。
+- `test_dht.py`: 测试一致性哈希(DHT)映射算法。
+- `test_dynamo.py`: 测试Dynamo风格的映射算法。
+- `test_hash.py`: 测试简单哈希映射算法。
+- `test_round_robin.py`: 测试轮询分配策略模拟器。
+- `test_tiered_copyset.py`: 测试Tiered Copyset映射算法。
+
 ## 安装
 
 ```bash
@@ -93,6 +106,12 @@ runner = SimulationRunner(
 
 # 运行完整分析
 runner.run_complete_analysis()
+```
+
+### 单元测试
+
+``` bash
+python -m unittest object_distribution/tests/*
 ```
 
 ## 算法实现差异
@@ -225,3 +244,4 @@ runner.run_complete_analysis()
 6. CRUSH映射在考虑实际数据中心拓扑和故障域隔离方面表现最好，但需要维护完整的层级结构。
 
 这个模拟器展示了不同分布算法在处理数据分布、负载均衡和系统扩展性方面的优劣势，帮助理解在实际系统中如何选择合适的分布策略。
+
