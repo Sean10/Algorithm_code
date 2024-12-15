@@ -5,7 +5,8 @@ from object_distribution.simulators import (
     DHTSimulator,
     DynamoSimulator,
     TieredCopysetSimulator,
-    CrushSimulator
+    CrushSimulator, 
+    RoundRobinSimulator
 )
 from object_distribution.utils.visualization import DistributionVisualizer
 from object_distribution.utils.performance import PerformanceAnalyzer
@@ -27,7 +28,8 @@ class SimulationRunner:
             'DHT': DHTSimulator(num_objects, num_nodes, num_processes=self.num_processes),
             'Dynamo': DynamoSimulator(num_objects, num_nodes, num_processes=self.num_processes),
             'TieredCopyset': TieredCopysetSimulator(num_objects, num_nodes, num_processes=self.num_processes),
-            'CRUSH': CrushSimulator(num_objects, num_nodes, num_processes=self.num_processes)
+            'CRUSH': CrushSimulator(num_objects, num_nodes, num_processes=self.num_processes),
+            'RoundRobin': RoundRobinSimulator(num_objects, num_nodes, num_processes=self.num_processes)
         }
         
         # 如果指定了算法，只使用指定的算法

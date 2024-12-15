@@ -20,9 +20,9 @@ def parse_args():
                       help='Distribution types to simulate (default: normal zipf)')
     
     # 算法选择
-    parser.add_argument('--algorithms', nargs='+', 
-                      default=['Hash', 'DHT', 'Dynamo', 'TieredCopyset', 'CRUSH'],
-                      choices=['Hash', 'DHT', 'Dynamo', 'TieredCopyset', 'CRUSH'],
+    parser.add_argument('--algorithms', nargs='+',
+                      default=['Hash', 'DHT', 'Dynamo', 'TieredCopyset', 'CRUSH', 'RoundRobin'],
+                      choices=['Hash', 'DHT', 'Dynamo', 'TieredCopyset', 'CRUSH', 'RoundRobin'],
                       help='Algorithms to simulate')
     
     # 性能分析选项
