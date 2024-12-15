@@ -22,7 +22,7 @@ def extract_json_structure(json_file):
             return type(obj).__name__
     
     return json.dumps(traverse_structure(data), indent=2)
-json_file_path = '/Users/xxx/Downloads/notes.json'
+json_file_path = '/Users/sean10/Downloads/notes.json'
 # 使用示例
 result = extract_json_structure(json_file_path)
 print(result)

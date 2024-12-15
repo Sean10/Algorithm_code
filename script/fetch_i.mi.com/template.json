@@ -1,0 +1,108 @@
+{
+  "folders": [],
+  "notes": [
+    {
+      "snippet": "str",
+      "modifyDate": "int",
+      "colorId": "int",
+      "subject": "str",
+      "alertDate": "int",
+      "type": "str",
+      "folderId": "int",
+      "content": "str",
+      "setting": {
+        "themeId": "int",
+        "stickyTime": "int",
+        "version": "int"
+      },
+      "alertTag": "int",
+      "id": "str",
+      "tag": "str",
+      "createDate": "int",
+      "status": "str",
+      "extraInfo": "{\"note_content_type\":\"common\",\"mind_content_plain_text\":\"\",\"title\":\"\",\"mind_content\":\"\"}"
+    }
+  ],
+  "images": [
+    {
+      "id": "str",
+      "image": "str"
+    },
+    {
+      "id": "str",
+      "image": "str"
+    },
+    {
+      "id": "str",
+      "image": "str"
+    },
+    {
+      "id": "str",
+      "image": "str"
+    },
+    {
+      "id": "str",
+      "image": "str"
+    },
+    {
+      "id": "str",
+      "image": "str"
+    },
+    {
+      "id": "str",
+      "image": "str"
+    },
+    {
+      "id": "str",
+      "image": "str"
+    },
+    {
+      "id": "str",
+      "image": "str"
+    },
+    {
+      "id": "str",
+      "image": "str"
+    },
+    {
+      "id": "str",
+      "image": "str"
+    },
+    {
+      "id": "str",
+      "image": "str"
+    },
+    {
+      "id": "str",
+      "image": "str"
+    },
+    {
+      "id": "str",
+      "image": "str"
+    },
+    {
+      "id": "str",
+      "image": "str"
+    },
+    {
+      "id": "str",
+      "image": "str"
+    },
+    {
+      "id": "str",
+      "image": "str"
+    },
+    {
+      "id": "str",
+      "image": "str"
+    },
+    {
+      "id": "str",
+      "image": "str"
+    },
+    {
+      "id": "str",
+      "image": "str"
+    }
+  ]
+}

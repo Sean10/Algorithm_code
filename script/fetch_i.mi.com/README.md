@@ -1,14 +1,18 @@
 
+# 功能
+
+* 支持导出json格式的笔记和待办
+* 支持以文本文件的压缩包形式导出笔记
+
 
 
 ## 待办
-* 导出基本数据
 * 导出思维导图(以文本格式, 最好是markdown)
 * 导出待办
 * 以文件形式导出内容, 最好是markdown的压缩包
 	* [一个zip，打包全部：前端JSZip多文件流下载压缩新姿势 \- ByteZoneX社区](https://www.bytezonex.com/archives/KhEQldsV.html)
 	* 浏览器导入库 https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.0/jszip.min.js
-
+* 引入xml转markdown的解析库
 
 
 # changelog
