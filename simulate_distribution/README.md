@@ -16,6 +16,17 @@
 5. 分析节点数增加时映射变化的情况。
 6. 提供命令行接口进行灵活配置。
 
+## 安装
+
+```bash
+# 克隆仓库
+git clone https://github.com/yourusername/object_distribution.git
+cd object_distribution
+
+# 安装依赖
+pip install -e .
+```
+
 ## 测试
 
 ### 测试目录
@@ -29,16 +40,12 @@
 - `test_round_robin.py`: 测试轮询分配策略模拟器。
 - `test_tiered_copyset.py`: 测试Tiered Copyset映射算法。
 
-## 安装
+### 单元测试
 
-```bash
-# 克隆仓库
-git clone https://github.com/yourusername/object_distribution.git
-cd object_distribution
-
-# 安装依赖
-pip install -e .
+``` bash
+python -m unittest object_distribution/tests/*
 ```
+
 
 ## 使用方法
 
@@ -51,10 +58,12 @@ python -m object_distribution.cli
 
 2. 自定义配置：
 ```bash
-python -m object_distribution.cli --num-objects 100000 --num-nodes 200 \
+python -m object_distribution.cli --num-objects 1000000 --num-nodes 200 \
     --distributions normal zipf \
     --algorithms Hash DHT Dynamo
 ```
+
+
 
 3. 性能分析：
 ```bash
@@ -108,18 +117,77 @@ runner = SimulationRunner(
 runner.run_complete_analysis()
 ```
 
-### 单元测试
-
-``` bash
-python -m unittest object_distribution/tests/*
-```
-
 ## 算法实现差异
 
 ### 1. 简单哈希映射
 - 直接使用对象哈希值对节点数取模。
 - 优点：实现简单，计算快速。
 - 缺点：节点数变化时需要大量数据迁移。
+
+#### 1.1 哈希算法对比
+
+##### Python内置哈希
+- 实现：基于SipHash-2-4算法（Python 3.4+）
+- 特点：
+  - 加密安全性强，抵抗哈希冲突攻击
+  - 每次Python进程启动时会随机化哈希种子
+  - 对字符串和数值类型有特殊优化
+- 应用场景：
+  - 字典键和集合元素的哈希计算
+  - 需要防止哈希冲突攻击的场景
+  - 通用目的的哈希计算
+
+##### Robert Jenkins哈希（rjenkins）
+- 设计目标：
+  - 1997年设计，针对非加密场景的高性能哈希
+  - 追求更好的雪崩效应（输入微小变化导致输出显著不同）
+  - 在32位系统上的优化表现
+- 算法特点：
+  - 使用位运算和加法实现，计算速度快
+  - 产生均匀的哈希分布
+  - 在小数据量时表现优异
+  - 无需额外的随机种子
+- 优势：
+  - 比加密哈希（如MD5）快5-20倍
+  - 比Python内置哈希少了安全性开销
+  - 哈希结果确定，不受进程重启影响
+- 应用场景：
+  - 高性能的数据分布
+  - 实时系统的负载均衡
+  - 对确定性要求高的场景
+
+##### 其他常见哈希算法对比
+1. MurmurHash
+   - 设计于2008年，注重性能和哈希质量
+   - 广泛应用于Hadoop、Cassandra等系统
+   - 在64位系统上表现优异
+
+2. FNV（Fowler-Noll-Vo）哈希
+   - 简单快速，特别适合哈希小字符串
+   - 在早期的分布式系统中应用广泛
+   - 存在哈希偏斜问题
+
+3. CityHash（Google）
+   - 针对现代处理器优化
+   - 特别适合长字符串
+   - 在大数据量场景下表现优异
+
+#### 1.2 哈希算法选择建议
+1. 性能优先场景：
+   - 选择rjenkins或MurmurHash
+   - 适用于实时系统和高频操作
+
+2. 安全性要求高：
+   - 使用Python内置哈希
+   - 适用于面向公网的服务
+
+3. 确定性要求高：
+   - 选择rjenkins或FNV
+   - 适用于需要跨进程/重启保持一致的场景
+
+4. 大数据量场景：
+   - 选择CityHash或MurmurHash
+   - 适用于数据仓库和分布式存储
 
 ### 2. 一致性哈希(DHT)映射
 - 构建哈希环，将节点和对象映射到环上。

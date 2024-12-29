@@ -2,15 +2,24 @@ from .base import BaseSimulator
 import numpy as np
 import multiprocessing as mp
 from functools import partial
-from ..utils.hash_utils import get_hash
+from ..utils.hash_utils import get_hash, rjenkins_hash
 
 class HashSimulator(BaseSimulator):
-    def __init__(self, num_objects, num_nodes, num_processes=None):
+    HASH_FUNCTIONS = {
+        'python': hash,
+        'rjenkins': rjenkins_hash
+    }
+
+    def __init__(self, num_objects, num_nodes, num_processes=None, hash_type='python'):
         super().__init__(num_objects, num_nodes, num_processes)
+        if hash_type not in self.HASH_FUNCTIONS:
+            raise ValueError(f"不支持的哈希类型: {hash_type}. 支持的类型: {list(self.HASH_FUNCTIONS.keys())}")
+        self.hash_type = hash_type
+        self.hash_func = self.HASH_FUNCTIONS[hash_type]
 
     def _parallel_hash(self, chunk, num_nodes):
         """并行处理哈希映射"""
-        hash_func = np.vectorize(lambda x: hash(x) % num_nodes)
+        hash_func = np.vectorize(lambda x: self.hash_func(x) % num_nodes)
         return hash_func(chunk)
 
     def hash_mapping(self, objects, num_nodes):

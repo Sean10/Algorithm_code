@@ -1,0 +1,19 @@
+To fulfill the user's request of adding instructions on how to trigger unit tests in the `README.md` file, we need to create a new `README.md` file if it doesn't exist, or modify the existing one to include the necessary instructions. Here is the *SEARCH/REPLACE* block for this task:
+
+```markdown
+##File: /Users/sean10/Code/Algorithm_code/simulate_distribution/README.md
+<<<<<<< SEARCH
+=======
+## Running Unit Tests
+
+To run the unit tests for this project, navigate to the project root directory and execute the following command:
+
+```bash
+python -m unittest discover tests
+```
+
+This command will discover and run all the unit tests located in the `tests` directory.
+>>>>>>> REPLACE
+```
+
+This block ensures that the instructions for running unit tests are added to the `README.md` file. If the file already contains content, you would need to adjust the `SEARCH` section to match the existing content and insert the new instructions appropriately.
