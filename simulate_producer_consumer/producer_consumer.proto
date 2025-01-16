@@ -1,0 +1,16 @@
+syntax = "proto3";
+
+package producer_consumer;
+
+import "google/protobuf/empty.proto";
+
+// 定义服务
+service ProducerConsumerService {
+  // 获取下一个ID的方法
+  rpc GetNextId(google.protobuf.Empty) returns (IdResponse) {}
+}
+
+// ID响应消息
+message IdResponse {
+  int64 id = 1;
+} 
