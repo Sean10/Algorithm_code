@@ -151,3 +151,5 @@ cython_debug/
 .continuerules
 .auto-coder/
 actions/
+terraform.tfstate*
+.terraform*
