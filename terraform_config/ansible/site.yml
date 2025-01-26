@@ -1,0 +1,44 @@
+---
+- name: 配置服务器
+  hosts: all
+  become: yes
+  gather_facts: yes
+
+  tasks:
+    - name: 更新dnf缓存
+      dnf:
+        update_cache: yes
+
+    - name: 安装基础软件包
+      dnf:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - vim
+        - git
+        - curl
+        - wget
+        - htop
+
+    - name: 配置SSH免密登录
+      authorized_key:
+        user: "{{ ansible_user }}"
+        key: "{{ lookup('file', '~/.ssh/sean10_tencent.pub') }}"
+        state: present
+
+    - name: 更新SSH配置
+      lineinfile:
+        path: /etc/ssh/sshd_config
+        regexp: "{{ item.regexp }}"
+        line: "{{ item.line }}"
+        state: present
+      loop:
+        - { regexp: '^PasswordAuthentication', line: 'PasswordAuthentication no' }
+        - { regexp: '^PubkeyAuthentication', line: 'PubkeyAuthentication yes' }
+      notify: restart sshd
+
+  handlers:
+    - name: restart sshd
+      service:
+        name: sshd
+        state: restarted 
