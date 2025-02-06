@@ -47,6 +47,12 @@ variable "instance_type" {
   default     = null
 }
 
+variable "os_name" {
+  description = "操作系统名称，例如：centos、ubuntu等"
+  type        = string
+  default     = "ubuntu"
+}
+
 variable "image_id" {
   description = "镜像 ID"
   type        = string

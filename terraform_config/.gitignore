@@ -25,6 +25,6 @@ terraform.rc
 
 # Ignore .env files
 .env 
-instance_types.json
+*.json
 
 extra_mnt

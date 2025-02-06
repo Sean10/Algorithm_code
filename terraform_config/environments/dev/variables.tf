@@ -56,4 +56,10 @@ variable "availability_zone" {
   description = "可用区"
   type        = string
   default     = null  # 设置为null，将根据region动态选择可用区
-} 
+}
+
+variable "os_name" {
+  description = "操作系统名称，例如：centos、ubuntu等"
+  type        = string
+  default     = "ubuntu"
+}

@@ -37,6 +37,45 @@
         - { regexp: '^PubkeyAuthentication', line: 'PubkeyAuthentication yes' }
       notify: restart sshd
 
+    - name: 本地打包 extra_mnt 目录
+      delegate_to: localhost
+      command: tar czf /tmp/extra_mnt.tar.gz -C ../extra_mnt .
+      args:
+        creates: /tmp/extra_mnt.tar.gz
+
+    - name: 创建远程目标目录
+      file:
+        path: /root
+        state: directory
+        mode: '0755'
+
+    - name: 传输压缩包到远程服务器
+      copy:
+        src: /tmp/extra_mnt.tar.gz
+        dest: /root/extra_mnt.tar.gz
+        mode: '0644'
+
+    - name: 解压文件到远程目标目录
+      command: tar xzf /root/extra_mnt.tar.gz -C /root
+      args:
+        creates: /root/clash-for-linux-backup
+
+    - name: 清理远程压缩包
+      file:
+        path: /root/extra_mnt.tar.gz
+        state: absent
+
+    - name: 清理本地临时压缩包
+      delegate_to: localhost
+      file:
+        path: /tmp/extra_mnt.tar.gz
+        state: absent
+
+    - name: 启动 Clash
+      shell: cd /root/clash-for-linux-backup && bash start.sh
+      args:
+        executable: /bin/bash
+
   handlers:
     - name: restart sshd
       service:
