@@ -198,50 +198,18 @@ class FormulaWatcher(FileSystemEventHandler):
         self.last_modified = 0
         self.retry_count = 3
         self.retry_delay = 0.5
-        # 使用绝对路径
-        self.formula_file = os.path.abspath(calculator.formula_file)
-        logger.debug(f"监听配置文件: {self.formula_file}")
+        # 改为监听整个配置目录
+        self.watch_dir = os.path.abspath(calculator.formula_dir)
+        logger.debug(f"监听配置目录: {self.watch_dir}")
 
     def on_modified(self, event):
-        if event.src_path == self.formula_file:  # 使用绝对路径比较
+        # 检查是否是yaml文件修改
+        if event.src_path.endswith('.yaml') and os.path.dirname(event.src_path) == self.watch_dir:
             current_time = time.time()
             if current_time - self.last_modified < 1:
                 return
             self.last_modified = current_time
-            logger.info("检测到配置文件更改，准备重新加载")
-
-            # 添加重试机制
-            for attempt in range(self.retry_count):
-                try:
-                    time.sleep(self.retry_delay)
-
-                    if not os.path.exists(self.formula_file):
-                        logger.warning(f"配置文件不存在，等待重试 ({attempt + 1}/{self.retry_count})")
-                        continue
-
-                    file_size = os.path.getsize(self.formula_file)
-                    if file_size == 0:
-                        logger.warning(f"配置文件为空，等待重试 ({attempt + 1}/{self.retry_count})")
-                        continue
-
-                    with open(self.formula_file, 'r', encoding='utf-8') as f:
-                        content = f.read().strip()
-                        if not content:
-                            logger.warning(f"配置文件内容为空，等待重试 ({attempt + 1}/{self.retry_count})")
-                            continue
-
-                    self.calculator.load_config()
-
-                    if hasattr(self.calculator, '_trigger_recalculation'):
-                        self.calculator._trigger_recalculation()
-
-                    logger.info("配置重新加载成功")
-                    break
-
-                except Exception as e:
-                    logger.warning(f"第 {attempt + 1} 次重试失败: {str(e)}")
-                    if attempt == self.retry_count - 1:
-                        logger.error(f"重新加载配置失败，已达到最大重试次数", exc_info=True)
+            logger.info(f"检测到配置文件 {os.path.basename(event.src_path)} 更改，准备重新加载")
 
 class UnitConverter:
     """单位转换工具类"""
@@ -425,12 +393,12 @@ class UnitConverter:
         return f"{value:.2f} B"
 
 class StorageCalculator:
-    def __init__(self, excel_mode=False, formula_file='formulas.yaml'):
+    def __init__(self, excel_mode=False, formula_dir='formulas'):
         """初始化计算器
 
         Args:
             excel_mode (bool): 是否为Excel模式
-            formula_file (str): 配置文件名称（将自动从脚本所在目录查找）
+            formula_dir (str): 配置目录名称（将自动从脚本所在目录查找）
         """
         timing.start('calculator_init')
 
@@ -438,9 +406,9 @@ class StorageCalculator:
         self.script_dir = os.path.dirname(os.path.abspath(__file__))
         logger.debug(f"脚本所在目录: {self.script_dir}")
 
-        # 将配置文件路径转换为绝对路径
-        self.formula_file = os.path.join(self.script_dir, formula_file)
-        logger.debug(f"配置文件路径: {self.formula_file}")
+        # 修改formula_file为formula_dir
+        self.formula_dir = os.path.join(self.script_dir, formula_dir)
+        logger.debug(f"配置目录路径: {self.formula_dir}")
 
         self.excel_mode = excel_mode
         self._calculated_values = {}  # 存储计算结果
@@ -495,7 +463,7 @@ class StorageCalculator:
         """加载配置文件"""
         try:
             # 获取formulas目录的路径
-            formulas_dir = os.path.join(self.script_dir, 'formulas')
+            formulas_dir = self.formula_dir
             if not os.path.exists(formulas_dir):
                 logger.error(f"formulas目录不存在: {formulas_dir}")
                 return
@@ -678,19 +646,20 @@ class StorageCalculator:
             return False
 
     def setup_formula_watcher(self):
-        """设置公式文件监听"""
+        """设置公式目录监听"""
         try:
             self.formula_watcher = FormulaWatcher(self)
             self.formula_observer = Observer()
             self.formula_observer.schedule(
                 self.formula_watcher,
-                path=os.path.dirname(os.path.abspath(self.formula_file)),
+                path=self.formula_dir,  # 修正为使用配置目录路径
                 recursive=False
             )
+            logger.debug(f"监听路径: {self.formula_dir}")
             self.formula_observer.start()
-            logger.debug("公式文件监听已启动")
+            logger.debug("公式目录监听已启动")
         except Exception as e:
-            logger.error(f"设置公式文件监听失败: {str(e)}")
+            logger.error(f"设置公式目录监听失败: {str(e)}")
 
     def load_defaults(self):
         """加载默认值"""
@@ -1166,29 +1135,39 @@ def watch_excel(excel_path):
     event_handler = ExcelHandler(excel_path)
     event_handler._main_thread_queue = main_thread_queue
 
-    observer = Observer()
-    observer.schedule(event_handler, directory, recursive=False)
-    observer.start()
-
-    print(f"开始监听Excel文件: {excel_path}")
-    print("提示: 您可以保持Excel文件打开并编辑，程序会自动检测更改并更新计算结果")
-    print("按Ctrl+C退出监听")
-
+    observer = None  # 显式声明为局部变量
     try:
-        while True:
-            # 在主线程中处理Excel操作
+        observer = Observer()
+        logger.debug(f"监听路径: {directory}")
+        observer.schedule(event_handler, directory, recursive=False)
+        observer.start()
+
+        print(f"开始监听Excel文件: {excel_path}")
+        print("提示: 您可以保持Excel文件打开并编辑，程序会自动检测更改并更新计算结果")
+        print("按Ctrl+C退出监听")
+
+        # 使用带超时的阻塞队列
+        while observer.is_alive():
             try:
-                # 非阻塞方式获取任
-                func = main_thread_queue.get_nowait()
+                func = main_thread_queue.get(timeout=0.5)
                 func()
             except queue.Empty:
-                pass
-            time.sleep(0.1)  # 短暂休眠以减少CPU使用
-    except KeyboardInterrupt:
-        print("\n正在停止监听...")
-        observer.stop()
+                if not observer.is_alive():
+                    break
+            except KeyboardInterrupt:
+                logger.info("\n接收到终止信号")
+                break
+
+    except Exception as e:
+        logger.error(f"监听异常: {str(e)}", exc_info=True)
+    finally:
+        if observer:
+            observer.stop()
+            observer.join(timeout=5)
+            if observer.is_alive():
+                logger.warning("Observer线程未正常退出")
         event_handler.cleanup()
-    observer.join()
+        logger.info("监听资源已释放")
 
 def _log_error(message, error=None, include_traceback=True):
     """统一的错误日志处理"""

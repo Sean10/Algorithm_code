@@ -1,0 +1,5 @@
+logging:
+  console_level: DEBUG  # 控制台日志级别
+  file_level: DEBUG     # 文件日志级别
+  log_file: storage_calculator.log  # 日志文件名
+  format: '%(asctime)s - %(name)s - %(levelname)s - %(message)s'  # 日志格式 
