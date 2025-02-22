@@ -1,0 +1,32 @@
+# 全局配置
+global:
+  default_units:
+    capacity: "TB"
+    throughput: "MiB/s"
+    size: "MB"
+
+  # 基础配置默认值
+  defaults:
+    throughput: 256  # 默认吞吐量
+    nvme_count: 1    # 默认NVMe数量
+    hdd_capacity: 20 # 默认HDD容量
+    hdd_count: 34   # 默认HDD数量
+    data_granularity: 32  # 数据粒度
+    stripe_size: 1   # 条带大小
+    data_blocks: 8   # 数据块数
+    parity_blocks: 2 # 校验块数
+    stream_size: 2   # 流大小
+    routes: 1000     # 路由数
+    avg_send_size: 1 # 平均发送大小
+    node_count: 1    # 节点数
+    ssd_count: 2     # SSD数量
+    hdd_count: 24    # HDD数量
+    concurrent_factor: 0.9  # 并发因子
+    nvme_throughput: 256   # NVMe吞吐量
+    hdd_throughput: 204.8  # HDD吞吐量
+
+# Excel配置
+excel:
+  sheet_name: "sheet1"  # 默认工作表名
+  start_row: 2         # 数据起始行
+  header_row: 1        # 标题行

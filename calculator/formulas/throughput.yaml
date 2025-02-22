@@ -1,0 +1,34 @@
+# 吞吐量相关配置
+variables:
+  nvme_throughput:
+    unit: "MiB/s"
+    excel_column: "nvme吞吐量"
+    can_be_input: true
+
+  hdd_throughput:
+    unit: "MiB/s"
+    excel_column: "hdd吞吐量"
+    can_be_input: true
+
+  node_count:
+    unit: "个"
+    excel_column: "节点数"
+    can_be_input: true
+
+  concurrent_factor:
+    unit: "%"
+    excel_column: "并发因子"
+    can_be_input: true
+
+formulas:
+  # 单节点吞吐量计算
+  node_throughput:
+    expression: "node_throughput = min(nvme_throughput, hdd_throughput)"
+    excel_column: "单节点吞吐量"
+    unit: "MiB/s"
+
+  # 系统总吞吐量计算
+  total_throughput:
+    expression: "total_throughput = node_throughput * node_count * concurrent_factor"
+    excel_column: "系统总吞吐量"
+    unit: "MiB/s"

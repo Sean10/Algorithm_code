@@ -1,0 +1,47 @@
+# 容量相关配置
+variables:
+  nvme_capacity:
+    unit: "TB"
+    excel_column: "nvme容量"
+    can_be_input: true
+
+  nvme_count:
+    unit: "个"
+    excel_column: "nvme数量"
+    can_be_input: true
+
+  hdd_count:
+    unit: "个"
+    excel_column: "HDD数量"
+    can_be_input: true
+
+  hdd_capacity:
+    unit: "TB"
+    excel_column: "HDD容量"
+    can_be_input: true
+
+formulas:
+  # 总NVMe容量计算
+  total_nvme:
+    expression: "total_nvme = nvme_capacity * nvme_count"
+    excel_column: "nvme总容量"
+    unit: "TB"
+
+  # NVMe实际可用容量
+  effective_nvme:
+    expression: "effective_nvme = total_nvme / ec_ratio"
+    excel_column: "nvme实际可用容量"
+    unit: "TiB"
+
+  total_hdd_capacity:
+    expression: "total_hdd_capacity = hdd_capacity * hdd_count"
+    excel_column: "HDD总容量"
+    unit: "TB"
+
+  avail_hdd_capacity:
+    expression: "avail_hdd_capacity = total_hdd_capacity / ec_ratio"
+    excel_column: "HDD实际可用容量"
+
+  smr_cmr_capacity:
+    expression: "smr_cmr_capacity = hdd_capacity * 0.01 * hdd_count"
+    excel_column: "SMR的CMR容量"

@@ -1,0 +1,18 @@
+# EC相关配置
+variables:
+  data_blocks:
+    unit: "个"
+    excel_column: "K"
+    can_be_input: true
+
+  parity_blocks:
+    unit: "个"
+    excel_column: "M"
+    can_be_input: true
+
+formulas:
+  # EC开销率计算
+  ec_ratio:
+    expression: "ec_ratio = (data_blocks + parity_blocks) / data_blocks"
+    excel_column: "EC开销率"
+    unit: "%"

@@ -1,0 +1,57 @@
+# 元数据相关配置
+variables:
+  metadata_size:
+    unit: "B"
+    excel_column: "元数据池单位大小"
+    can_be_input: true
+
+  assemble_metadata_size:
+    unit: "B"
+    excel_column: "聚合池元数据单位大小"
+    can_be_input: true
+
+  hdd_db_metadata_size:
+    unit: "B"
+    excel_column: "HDD DB元数据大小"
+    can_be_input: true
+
+  object_size:
+    unit: "B"
+    excel_column: "对象大小"
+    can_be_input: true
+
+  assemble_size:
+    unit: "B"
+    excel_column: "聚合大小"
+    can_be_input: true
+
+  metadata_replica:
+    excel_column: "元数据副本数"
+    can_be_input: true
+
+formulas:
+  object_count:
+    expression: "object_count = avail_hdd_capacity / object_size"
+    excel_column: "对象数量"
+    unit: "个"
+
+  hdd_db_object_count:
+    expression: "hdd_db_object_count = object_count * object_size / assemble_size * (data_blocks + parity_blocks)"
+    excel_column: "HDD DB对象数量"
+    unit: "个"
+
+  hdd_db_size:
+    expression: "hdd_db_size = hdd_db_object_count * hdd_db_metadata_size"
+    excel_column: "HDD DB大小"
+
+  assemble_db_size:
+    expression: "assemble_db_size = object_count * assemble_metadata_size * metadata_replica"
+    excel_column: "聚合池大小"
+
+  metadata_db_size:
+    expression: "metadata_db_size = object_count * metadata_size * metadata_replica"
+    excel_column: "元数据池大小"
+
+  need_nvme_capacity:
+    expression: "need_nvme_capacity = hdd_db_size + assemble_db_size + metadata_db_size"
+    excel_column: "所需NVMe容量"
