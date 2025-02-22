@@ -568,13 +568,11 @@ class StorageCalculator:
             header_row = excel_config.get('header_row', 1)
             start_row = excel_config.get('start_row', 2)
 
-            # 获取实际的sheet名称
-            actual_sheet_name = sheet.name
-            logger.debug(f"当前工作表名称: {actual_sheet_name}")
+            # 直接使用传入的sheet对象（已经是当前活动sheet）
+            logger.debug(f"当前工作表名称: {sheet.name}")
 
             # 获取标题行
-            header_range = sheet.range(f'{header_row}:{header_row}')
-            headers = header_range.value
+            headers = sheet.range(f'{header_row}:{header_row}').value
             logger.debug(f"读取到的标题行: {headers}")
 
             # 获取数据范围
@@ -1038,12 +1036,12 @@ class ExcelHandler(FileSystemEventHandler):
 
             # 获取Excel配置
             excel_config = self.calculator.get_excel_columns()
-            sheet_name = excel_config.get('sheet_name', 'sheet1')
             start_row = excel_config.get('start_row', 2)
             header_row = excel_config.get('header_row', 1)
 
-            # 获取工作表
-            sheet = self.wb.sheets[sheet_name]
+            # 获取当前活动的工作表
+            sheet = self.wb.sheets.active  # 修改为获取当前活动sheet
+            logger.debug(f"当前活动工作表: {sheet.name}")
 
             # 获取标题行
             headers = sheet.range(f'{header_row}:{header_row}').value
