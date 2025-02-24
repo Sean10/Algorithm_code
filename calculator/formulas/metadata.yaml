@@ -5,9 +5,19 @@ variables:
     excel_column: "元数据池单位大小"
     can_be_input: true
 
+  metadata_simplify_size:
+    unit: "B"
+    excel_column: "元数据池精简大小"
+    can_be_input: true
+
   assemble_metadata_size:
     unit: "B"
     excel_column: "聚合池元数据单位大小"
+    can_be_input: true
+
+  assemble_simplify_metadata_size:
+    unit: "B"
+    excel_column: "聚合池精简元数据单位大小"
     can_be_input: true
 
   hdd_db_metadata_size:
@@ -29,6 +39,28 @@ variables:
     excel_column: "元数据副本数"
     can_be_input: true
 
+  tune_metadata_replica:
+    excel_column: "调优元数据副本数"
+    can_be_input: true
+
+  # 暂时计算中 不算了. 直接默认一个nvme 1个
+  nvme_assemble_osd_count:
+    excel_column: "单盘NVMe聚合池OSD数量"
+    can_be_input: true
+
+  # 单盘存放完整对象元数据数量, 剩余则通过归档, 精简元数据
+  assemble_metadata_object_limit:
+    excel_column: "单盘存放完整对象元数据数量"
+    can_be_input: true
+
+  nvme_assemble_object_reserve:
+    excel_column: "NVMe聚合池预留空间"
+    can_be_input: true
+
+  rocksdb_compression_ratio:
+    excel_column: "RocksDB压缩比"
+    can_be_input: true
+
 formulas:
   object_count:
     expression: "object_count = avail_hdd_capacity / object_size"
@@ -44,14 +76,103 @@ formulas:
     expression: "hdd_db_size = hdd_db_object_count * hdd_db_metadata_size"
     excel_column: "HDD DB大小"
 
+  # 优化前HDD DB大小占比
+  origin_hdd_db_size_ratio:
+    expression: "origin_hdd_db_size_ratio = hdd_db_size / origin_need_nvme_capacity"
+    excel_column: "优化前HDD DB大小占比"
+    unit: "%"
+
+
+  origin_assemble_db_size:
+    expression: "assemble_db_size =  object_count * assemble_metadata_size * metadata_replica"
+    excel_column: "聚合池原始大小"
+
+  origin_assemble_db_size_ratio:
+    expression: "origin_assemble_db_size_ratio = origin_assemble_db_size / origin_need_nvme_capacity"
+    excel_column: "聚合池原始大小占比"
+    unit: "%"
+
+
+  # 归档元数据数量占比
+  archive_assemble_object_ratio:
+    expression: "archive_assemble_object_ratio = (object_count - assemble_metadata_object_limit*nvme_count) / object_count"
+    excel_column: "归档元数据数量占比"
+
+  origin_metadata_db_size:
+    expression: "origin_metadata_db_size = object_count * metadata_size * metadata_replica"
+    excel_column: "优化前元数据池大小"
+
+
+
+  # 优化前元数据池大小占比
+  origin_metadata_db_size_ratio:
+    expression: "origin_metadata_db_size_ratio = origin_metadata_db_size / origin_need_nvme_capacity"
+    excel_column: "优化前元数据池大小占比"
+    unit: "%"
+
+
+  # nvme单盘的 对象数量
+  nvme_assemble_object_count:
+    expression: "nvme_assemble_object_count = object_count / nvme_count"
+    excel_column: "NVMe单盘对象数量"
+
+  # 原始所需nvme大小
+  origin_need_nvme_capacity:
+    expression: "origin_need_nvme_capacity = hdd_db_size + origin_assemble_db_size + origin_metadata_db_size"
+    excel_column: "原始所需NVMe容量"
+
+
+
+  hdd_pool_massemble_db_size:
+    expression: "hdd_pool_massemble_db_size = (object_count - assemble_metadata_object_limit) * assemble_metadata_size * ec_ratio"
+    excel_column: "HDD池上对象聚合池大小"
+
+  # 数据池的得盘率因元数据占用带来下降
+  hdd_pool_disk_utilization:
+    expression: "hdd_pool_disk_utilization = object_size / (assemble_metadata_size + object_size)"
+    excel_column: "HDD池数据占比"
+    unit: "%"
+
+  # 除去db和业务元数据对象空间后, 剩余空间
+  nvme_reserve_capacity:
+    expression: "nvme_reserve_capacity = total_nvme - metadata_db_size - hdd_db_size - nvme_assemble_object_reserve  * nvme_count"
+    excel_column: "NVMe剩余供聚合池用空间"
+
+  # 含rocksdb压缩
+  nvme_reserve_object_count:
+    expression: "nvme_reserve_object_count = (nvme_reserve_capacity - object_count * assemble_simplify_metadata_size * metadata_replica) / (assemble_metadata_size * metadata_replica*rocksdb_compression_ratio + assemble_simplify_metadata_size * metadata_replica)"
+    excel_column: "NVMe剩余供聚合池用对象数量"
+    unit: "个"
+
+  # 优化后
+  hdd_db_size_ratio:
+    expression: "hdd_db_size_ratio = hdd_db_size / need_nvme_capacity"
+    excel_column: "HDD DB大小占比"
+    unit: "%"
+
   assemble_db_size:
-    expression: "assemble_db_size = object_count * assemble_metadata_size * metadata_replica"
+    expression: "assemble_db_size = rocksdb_compression_ratio * assemble_metadata_object_limit * assemble_metadata_size * tune_metadata_replica + (object_count - assemble_metadata_object_limit) * assemble_simplify_metadata_size * tune_metadata_replica"
     excel_column: "聚合池大小"
 
+  assemble_db_size_ratio:
+    expression: "assemble_db_size_ratio = assemble_db_size / need_nvme_capacity"
+    excel_column: "聚合池大小占比"
+    unit: "%"
+
   metadata_db_size:
-    expression: "metadata_db_size = object_count * metadata_size * metadata_replica"
+    expression: "metadata_db_size = assemble_metadata_object_limit * metadata_size * tune_metadata_replica + (object_count - assemble_metadata_object_limit) * metadata_simplify_size * tune_metadata_replica"
     excel_column: "元数据池大小"
+
+  metadata_db_size_ratio:
+    expression: "metadata_db_size_ratio = metadata_db_size / need_nvme_capacity"
+    excel_column: "元数据池大小占比"
+    unit: "%"
 
   need_nvme_capacity:
     expression: "need_nvme_capacity = hdd_db_size + assemble_db_size + metadata_db_size"
     excel_column: "所需NVMe容量"
+
+  nvme_tune_ratio:
+    expression: "nvme_tune_ratio = (origin_need_nvme_capacity - need_nvme_capacity) / origin_need_nvme_capacity"
+    excel_column: "NVMe调优比例"
+    unit: "%"

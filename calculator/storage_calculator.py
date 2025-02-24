@@ -210,6 +210,7 @@ class FormulaWatcher(FileSystemEventHandler):
                 return
             self.last_modified = current_time
             logger.info(f"检测到配置文件 {os.path.basename(event.src_path)} 更改，准备重新加载")
+            self.calculator.load_config()
 
 class UnitConverter:
     """单位转换工具类"""
@@ -239,7 +240,7 @@ class UnitConverter:
     SPECIAL_UNITS = {
         '%': {'base': 0.01, 'format': lambda x: f"{x*100:.2f}%"},
         '个': {'base': 1, 'format': lambda x: f"{x:.0f}个"},
-        'MiB/s': {'base': 1, 'format': lambda x: f"{x:.2f}MiB/s"}
+        # 'MiB/s': {'base': 1, 'format': lambda x: f"{x:.2f}MiB/s"}
     }
 
     @classmethod
@@ -276,7 +277,9 @@ class UnitConverter:
             'pib': 1024**5
         }
         if base_unit in binary_units:
-            return f"{base_unit}{suffix}".upper(), binary_units[base_unit], True
+            # 修正大小写：首字母大写，i保持小写，B大写 (e.g. MiB)
+            formatted = f"{base_unit[0].upper()}{base_unit[1]}B{suffix}"
+            return formatted, binary_units[base_unit], True
 
         # 处理十进制单位
         decimal_units = {
@@ -285,7 +288,9 @@ class UnitConverter:
             'pb': 1000**5
         }
         if base_unit in decimal_units:
-            return f"{base_unit}{suffix}".upper(), decimal_units[base_unit], False
+            # 修正大小写：首字母大写，B大写 (e.g. MB)
+            formatted = f"{base_unit[0].upper()}B{suffix}"
+            return formatted, decimal_units[base_unit], False
 
         # 处理无前缀单位
         if base_unit in ['b', 'bytes']:
@@ -368,20 +373,26 @@ class UnitConverter:
         except (ValueError, TypeError):
             return str(value)
 
-        # 特殊单位处理
-        if target_unit in cls.SPECIAL_UNITS:
-            return cls.SPECIAL_UNITS[target_unit]['format'](value)
+        # 优先处理用户明确指定的单位
+        if target_unit:
+            # 检查是否是特殊单位
+            if target_unit in cls.SPECIAL_UNITS:
+                return cls.SPECIAL_UNITS[target_unit]['format'](value)
+
+            # 尝试解析标准单位
+            unit_info, factor, is_binary = cls._parse_unit_prefix(target_unit)
+
+            # 如果无法识别单位，直接附加原单位
+            if unit_info is None or factor == 1:
+                return f"{value:.2f} {target_unit}"
+
+            # 标准单位转换
+            converted_value = value / factor
+            return f"{converted_value:.2f} {unit_info}"
 
         # 选择单位系统
         units = cls.BINARY_UNITS if use_binary else cls.DECIMAL_UNITS
         base = cls.BINARY_BASE if use_binary else cls.DECIMAL_BASE
-
-        # 如果指定了目标单位
-        if target_unit:
-            unit_info, factor, is_binary = cls._parse_unit_prefix(target_unit)
-            if unit_info:
-                converted_value = value / factor
-                return f"{converted_value:.2f} {unit_info}"
 
         # 自动选择最合适的单位
         abs_value = abs(value)
@@ -390,7 +401,7 @@ class UnitConverter:
                 converted_value = value / factor
                 return f"{converted_value:.2f} {unit}"
 
-        return f"{value:.2f} B"
+        return f"{value:.2f} "
 
 class StorageCalculator:
     def __init__(self, excel_mode=False, formula_dir='formulas'):
@@ -1033,6 +1044,17 @@ class ExcelHandler(FileSystemEventHandler):
 
         try:
             self._ensure_excel_thread()
+            app = self.app
+
+            # 冻结Excel界面
+            original_screen_updating = app.screen_updating
+            original_calculation = app.calculation
+            original_enable_events = app.enable_events
+
+            # app.screen_updating = False  # 禁用屏幕刷新
+            # app.calculation = 'manual'  # 暂停自动计算
+            # app.enable_events = False  # 禁用事件处理
+            # app.interactive = False  # 禁止用户交互
 
             # 获取Excel配置
             excel_config = self.calculator.get_excel_columns()
@@ -1100,7 +1122,7 @@ class ExcelHandler(FileSystemEventHandler):
             # 只在有更新时保存
             if updated:
                 try:
-                    self.wb.save()
+                    # self.wb.save()
                     logger.info("Excel已更新并保存")
                 except Exception as e:
                     logger.error(f"保存Excel失败: {str(e)}")
@@ -1110,6 +1132,16 @@ class ExcelHandler(FileSystemEventHandler):
         except Exception as e:
             logger.error("处理Excel时出错", exc_info=True)
         finally:
+            # 恢复Excel设置
+            # try:
+                # app.screen_updating = original_screen_updating
+                # app.calculation = original_calculation
+                # app.enable_events = original_enable_events
+                # app.interactive = True
+                # app.screen_updating = True  # 强制刷新一次界面
+            # except Exception as e:
+            #     logger.error(f"恢复Excel设置失败: {str(e)}")
+
             self.processing = False
 
     def __del__(self):

@@ -1,0 +1,209 @@
+# # formulas.yaml
+
+# # 全局配置和默认值
+# global:
+#   defaults:
+#     ec_ratio: 0.75  # EC编码效率默认值
+#     replica_count: 3  # 副本数默认值
+
+# # 变量定义
+# variables:
+#   nvme_disk_count:
+#     description: "NVMe磁盘数量"
+#     unit: ""
+#     excel_column: "NVMe数量"
+#     can_be_input: true
+
+#   nvme_disk_size:
+#     description: "单个NVMe磁盘容量"
+#     unit: "TiB"
+#     excel_column: "NVMe单盘容量"
+#     can_be_input: true
+
+#   hdd_disk_count:
+#     description: "HDD磁盘数量"
+#     unit: ""
+#     excel_column: "HDD数量"
+#     can_be_input: true
+
+#   hdd_disk_size:
+#     description: "单个HDD磁盘容量"
+#     unit: "TiB"
+#     excel_column: "HDD单盘容量"
+#     can_be_input: true
+
+#   ec_ratio:
+#     description: "EC编码效率"
+#     unit: "%"
+#     excel_column: "EC效率"
+#     can_be_input: true
+
+#   replica_count:
+#     description: "副本数"
+#     unit: ""
+#     excel_column: "副本数"
+#     can_be_input: true
+
+# # 公式定义
+# formulas:
+#   nvme_total_storage:
+#     description: "NVMe总物理容量"
+#     expression: "nvme_total = nvme_disk_count * nvme_disk_size"
+#     variables: ["nvme_disk_count", "nvme_disk_size"]
+#     output_variable: "nvme_total"
+#     excel_column: "NVMe总容量"
+#     unit: "TiB"
+
+#   hdd_total_storage:
+#     description: "HDD总物理容量"
+#     expression: "hdd_total = hdd_disk_count * hdd_disk_size"
+#     variables: ["hdd_disk_count", "hdd_disk_size"]
+#     output_variable: "hdd_total"
+#     excel_column: "HDD总容量"
+#     unit: "TiB"
+
+#   effective_nvme_capacity:
+#     description: "NVMe有效容量"
+#     expression: "effective_nvme = nvme_total * ec_ratio / replica_count"
+#     variables: ["nvme_total", "ec_ratio", "replica_count"]
+#     output_variable: "effective_nvme"
+#     excel_column: "NVMe有效容量"
+#     unit: "TiB"
+
+#   effective_hdd_capacity:
+#     description: "HDD有效容量"
+#     expression: "effective_hdd = hdd_total * ec_ratio / replica_count"
+#     variables: ["hdd_total", "ec_ratio", "replica_count"]
+#     output_variable: "effective_hdd"
+#     excel_column: "HDD有效容量"
+#     unit: "TiB"
+
+#   total_effective_capacity:
+#     description: "总有效容量"
+#     expression: "total_effective = effective_nvme + effective_hdd"
+#     variables: ["effective_nvme", "effective_hdd"]
+#     output_variable: "total_effective"
+#     excel_column: "总有效容量"
+#     unit: "TiB"
+
+# # Excel相关配置
+# excel:
+#   sheet_name: "Sheet1"  # 工作表名称
+#   header_row: 1         # 表头所在行
+#   start_row: 2         # 数据起始行
+
+
+
+
+# 全局配置
+global:
+  default_units:
+    capacity: "TB"
+    throughput: "MiB/s"
+    size: "MB"
+
+  # 基础配置默认值
+  defaults:
+    throughput: 256
+    nvme_capacity: 7.68
+    nvme_count: 1
+    hdd_capacity: 20
+    hdd_count: 34
+    data_granularity: 32
+    stripe_size: 1
+    data_blocks: 8
+    parity_blocks: 2
+    stream_size: 2
+    routes: 1000
+    avg_send_size: 1
+    node_count: 1
+    ssd_count: 2
+    hdd_count: 24
+    concurrent_factor: 0.9
+    nvme_throughput: 256
+    hdd_throughput: 204.8
+
+# 变量定义
+variables:
+  nvme_capacity:
+    description: "单个NVMe容量"
+    unit: "TB"
+    excel_column: "nvme容量"
+    can_be_input: true
+  
+  nvme_count:
+    description: "NVMe数量"
+    unit: "个"
+    excel_column: "nvme数量"
+    can_be_input: true
+
+  data_blocks:
+    description: "EC数据块数"
+    unit: "个"
+    excel_column: "EC数据块数"
+    can_be_input: true
+
+  parity_blocks:
+    description: "EC校验块数"
+    unit: "个"
+    excel_column: "EC校验块数"
+    can_be_input: true
+
+# 公式定义
+formulas:
+  total_nvme_storage:
+    expression: "total_nvme = nvme_capacity * nvme_count"
+    description: "总NVMe容量计算公式"
+    variables:
+      - nvme_capacity
+      - nvme_count
+    excel_column: "nvme总容量"
+    output_variable: "total_nvme"
+    unit: "TiB"
+
+  ec_overhead:
+    expression: "ec_ratio = (data_blocks + parity_blocks) / data_blocks"
+    description: "EC开销率计算公式"
+    variables:
+      - data_blocks
+      - parity_blocks
+    excel_column: "EC开销率"
+    output_variable: "ec_ratio"
+    unit: "%"
+
+  effective_nvme_capacity:
+    expression: "effective_nvme = total_nvme / ec_ratio"
+    description: "NVMe实际可用容量"
+    variables:
+      - total_nvme
+      - ec_ratio
+    excel_column: "nvme实际可用容量"
+    output_variable: "effective_nvme"
+    unit: "TB"
+
+  node_throughput:
+    expression: "node_throughput = min(nvme_throughput, hdd_throughput)"
+    description: "单节点吞吐量计算公式"
+    variables:
+      - nvme_throughput
+      - hdd_throughput
+    excel_column: "单节点吞吐量"
+    output_variable: "node_throughput"
+    unit: "MiB/s"
+
+  total_throughput:
+    expression: "total_throughput = node_throughput * node_count * concurrent_factor"
+    description: "系统总吞吐量计算公式"
+    variables:
+      - node_throughput
+      - node_count
+      - concurrent_factor
+    excel_column: "系统总吞吐量"
+    output_variable: "total_throughput"
+    unit: "MiB/s"
+
+# Excel配置
+excel:
+  sheet_name: "sheet1"  # 默认工作表名
+  start_row: 2           # 数据起始行
+  header_row: 1          # 标题行
