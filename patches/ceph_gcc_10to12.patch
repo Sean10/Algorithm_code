@@ -1,0 +1,30 @@
+diff --git a/src/common/dout.h b/src/common/dout.h
+index 421222d53..ae52c358b 100644
+--- a/src/common/dout.h
++++ b/src/common/dout.h
+@@ -99,11 +99,11 @@ namespace ceph::dout {
+ template<typename T>
+ struct dynamic_marker_t {
+   T value;
+-  operator T() const { return value; }
++  constexpr operator T() const { return value; }
+ };
+ 
+ template<typename T>
+-dynamic_marker_t<T> need_dynamic(T&& t) {
++constexpr dynamic_marker_t<T> need_dynamic(T&& t) {
+   return dynamic_marker_t<T>{ std::forward<T>(t) };
+ }
+ 
+diff --git a/src/include/buffer.h b/src/include/buffer.h
+index 7c8f90e9f..0653d7b6a 100644
+--- a/src/include/buffer.h
++++ b/src/include/buffer.h
+@@ -43,6 +43,7 @@
+ #include <list>
+ #include <vector>
+ #include <string>
++#include <memory>
+ #if __cplusplus >= 201703L
+ #include <string_view>
+ #endif // __cplusplus >= 201703L
