@@ -67,4 +67,5 @@ module "compute" {
   spot_max_price      = var.spot_max_price
   system_disk_size    = var.system_disk_size
   os_name             = var.os_name
+  password            = var.password
 }

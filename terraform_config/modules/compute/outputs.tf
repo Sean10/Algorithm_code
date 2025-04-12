@@ -39,4 +39,13 @@ output "security_group_info" {
     security_group_id = tencentcloud_security_group.default.id
     security_group_name = tencentcloud_security_group.default.name
   }
-} 
+}
+
+# output "ssh_key_info" {
+#   description = "SSH密钥信息"
+#   value = {
+#     ssh_key_id = tencentcloud_ssm_ssh_key_pair_secret.example.id
+#     ssh_key_name = tencentcloud_ssm_ssh_key_pair_secret.example.ssh_key_name
+#     ssh_key_private_key = data.tencentcloud_ssm_ssh_key_pair_value.created_ssh_key.private_key
+#   }
+# }

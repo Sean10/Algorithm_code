@@ -82,12 +82,16 @@ resource "tencentcloud_instance" "cvm" {
   system_disk_type = var.system_disk_type
   system_disk_size = var.system_disk_size
 
+
+  password = var.password
+  # key_ids = [tencentcloud_ssm_ssh_key_pair_secret.example.id]
   vpc_id                     = var.vpc_id
   subnet_id                  = var.subnet_id
   instance_charge_type       = var.instance_charge_type
   internet_charge_type       = "TRAFFIC_POSTPAID_BY_HOUR"
   internet_max_bandwidth_out = 100
   allocate_public_ip        = true
+
 
   orderly_security_groups = [
     tencentcloud_security_group.default.id
@@ -100,3 +104,53 @@ resource "tencentcloud_instance" "cvm" {
     environment = var.environment
   }
 }
+
+
+resource "tencentcloud_cbs_storage" "my_storage" {
+  storage_type      = "CLOUD_HSSD"
+  storage_name      = "${var.environment}-storage"
+  storage_size      = 50
+  availability_zone = var.availability_zone
+  project_id        = 0
+  encrypt           = false
+
+  tags = {
+    test = "tf"
+  }
+}
+
+resource "tencentcloud_cbs_storage_attachment" "my_attachment" {
+  storage_id  = tencentcloud_cbs_storage.my_storage.id
+  instance_id = tencentcloud_instance.cvm.id
+}
+
+
+# resource "tencentcloud_kms_key" "example" {
+#   alias                = "${var.environment}-kms-key"
+#   description          = "example of kms key"
+#   key_rotation_enabled = false
+#   is_enabled           = true
+
+#   tags = {
+#     createdBy = "terraform"
+#   }
+# }
+
+# resource "tencentcloud_ssm_ssh_key_pair_secret" "example" {
+#   secret_name   = "${var.environment}-ssh-key"
+#   project_id    = 0
+#   description   = "desc."
+#   kms_key_id    = tencentcloud_kms_key.example.id
+#   ssh_key_name  = "${var.environment}-ssh"
+#   status        = "Enabled"
+#   clean_ssh_key = true
+
+#   tags = {
+#     createdBy = "terraform"
+#   }
+# }
+
+# data "tencentcloud_ssm_ssh_key_pair_value" "created_ssh_key" {
+#   secret_name = "${var.environment}-ssh-key"
+#   ssh_key_id  = tencentcloud_ssm_ssh_key_pair_secret.example.id
+# }

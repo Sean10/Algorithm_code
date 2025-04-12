@@ -20,11 +20,17 @@
         - wget
         - htop
 
-    - name: 配置SSH免密登录
-      authorized_key:
-        user: "{{ ansible_user }}"
-        key: "{{ lookup('file', '~/.ssh/sean10_tencent.pub') }}"
-        state: present
+    - name: 传输公钥到远程服务器
+      copy:
+        src: ~/.ssh/sean10_tencent.pub
+        dest: /root/.ssh/authorized_keys
+        mode: '0600'
+
+    # - name: 配置SSH免密登录
+    #   authorized_key:
+    #     user: "{{ ansible_user }}"
+    #     key: "{{ lookup('file', '~/.ssh/sean10_tencent.pub') }}"
+    #     state: present
 
     - name: 更新SSH配置
       lineinfile:
@@ -33,21 +39,9 @@
         line: "{{ item.line }}"
         state: present
       loop:
-        - { regexp: '^PasswordAuthentication', line: 'PasswordAuthentication no' }
+        - { regexp: '^PasswordAuthentication', line: 'PasswordAuthentication yes' }
         - { regexp: '^PubkeyAuthentication', line: 'PubkeyAuthentication yes' }
       notify: restart sshd
-
-    - name: 本地打包 extra_mnt 目录
-      delegate_to: localhost
-      command: tar czf /tmp/extra_mnt.tar.gz -C ../extra_mnt .
-      args:
-        creates: /tmp/extra_mnt.tar.gz
-
-    - name: 创建远程目标目录
-      file:
-        path: /root
-        state: directory
-        mode: '0755'
 
     - name: 传输压缩包到远程服务器
       copy:
@@ -63,12 +57,6 @@
     - name: 清理远程压缩包
       file:
         path: /root/extra_mnt.tar.gz
-        state: absent
-
-    - name: 清理本地临时压缩包
-      delegate_to: localhost
-      file:
-        path: /tmp/extra_mnt.tar.gz
         state: absent
 
     - name: 启动 Clash

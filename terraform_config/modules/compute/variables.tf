@@ -16,6 +16,7 @@ variable "subnet_id" {
 variable "availability_zone" {
   description = "可用区"
   type        = string
+  default     = ""
 }
 
 variable "region" {
@@ -59,6 +60,11 @@ variable "image_id" {
   default     = "img-487zeit5" # Ubuntu 20.04
 }
 
+variable "password" {
+  description = "密码"
+  type        = string
+}
+
 variable "instance_charge_type" {
   description = "实例计费类型"
   type        = string
@@ -80,5 +86,5 @@ variable "system_disk_type" {
 variable "system_disk_size" {
   description = "系统盘大小(GB)"
   type        = number
-  default     = 50
-} 
+  default     = 40
+}

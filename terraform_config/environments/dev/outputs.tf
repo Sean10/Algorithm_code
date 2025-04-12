@@ -14,7 +14,8 @@ output "ansible_inventory" {
       }
       vars = {
         ansible_ssh_common_args = "-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-        ansible_ssh_private_key_file = "~/.ssh/sean10_tencent"
+        # ansible_ssh_private_key_file = "~/.ssh/tmp_ssh_private_key"
+        ansible_ssh_pass = var.password
       }
     }
   }
@@ -28,5 +29,6 @@ output "ssh_config" {
     hostname     = module.compute.instance.public_ip
     user         = "root"  # 基于Ubuntu镜像
     identity_file = "~/.ssh/sean10_tencent"
+    password = var.password
   }
 } 

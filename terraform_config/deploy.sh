@@ -11,7 +11,7 @@ NC='\033[0m'
 ENV=${1:-dev}
 TERRAFORM_DIR="environments/${ENV}"
 ANSIBLE_DIR="ansible"
-INVENTORY_FILE="${ANSIBLE_DIR}/inventory.json"
+INVENTORY_FILE="inventory.json"
 SSH_CONFIG_FILE="$HOME/.ssh/config"
 BACKUP_FILE="$HOME/.ssh/config.bak"
 
@@ -44,16 +44,18 @@ backup_ssh_config() {
 create_infrastructure() {
     echo -e "${GREEN}开始创建基础设施...${NC}"
     cd "${TERRAFORM_DIR}"
-    terraform init
+    # terraform init
     terraform apply -auto-approve
     
     # 导出Ansible清单
     terraform output -json ansible_inventory > "../../${INVENTORY_FILE}"
     
+    # terraform output -json ssh_key_info | jq -r '. | ssh_key_private_key' >> ~/.ssh/tmp_ssh_private_key
     # 更新SSH配置
     backup_ssh_config
     {
         echo -e "\n# Terraform managed: ${ENV} environment"
+
         terraform output -json ssh_config | jq -r '. | "Host \(.host)\n  HostName \(.hostname)\n  User \(.user)\n  IdentityFile \(.identity_file)\n"'
     } >> "${SSH_CONFIG_FILE}"
     
@@ -65,10 +67,10 @@ wait_for_ssh() {
     echo "等待SSH服务就绪..."
     HOST=$(jq -r '.all.hosts.tenos.ansible_host' "${INVENTORY_FILE}")
     USER=$(jq -r '.all.hosts.tenos.ansible_user' "${INVENTORY_FILE}")
-    KEY_FILE=$(jq -r '.all.vars.ansible_ssh_private_key_file' "${INVENTORY_FILE}")
+    PASSWORD=$(jq -r '.all.vars.ansible_ssh_pass' "${INVENTORY_FILE}")
     
     for i in {1..30}; do
-        if ssh -i "${KEY_FILE}" -o StrictHostKeyChecking=no -o ConnectTimeout=5 "${USER}@${HOST}" 'exit' 2>/dev/null; then
+        if sshpass -p "${PASSWORD}" ssh -o StrictHostKeyChecking=no -o ConnectTimeout=5 "${USER}@${HOST}" 'exit' 2>/dev/null; then
             echo "SSH连接已就绪"
             return 0
         fi
@@ -84,7 +86,9 @@ wait_for_ssh() {
 run_ansible() {
     echo -e "${GREEN}开始配置服务器...${NC}"
     cd "${ANSIBLE_DIR}"
+    tar czf /tmp/extra_mnt.tar.gz -C ../extra_mnt .
     ansible-playbook -i "${INVENTORY_FILE}" site.yml
+    rm -f /tmp/extra_mnt.tar.gz
     cd ..
 }
 

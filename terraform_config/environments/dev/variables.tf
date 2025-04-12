@@ -31,6 +31,11 @@ variable "memory_size" {
   default     = 2
 }
 
+variable "password" {
+  description = "密码"
+  type        = string
+}
+
 variable "instance_charge_type" {
   description = "实例计费类型"
   type        = string
