@@ -1,0 +1,7 @@
+CompileFlags:
+  Add:
+    - "-isystem/usr/include/c++/12"
+    - "-std=c++17"
+  Remove: 
+    - "--driver-mode=*"
+    - "-resource-dir=*"
