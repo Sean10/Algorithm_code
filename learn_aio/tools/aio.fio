@@ -1,0 +1,18 @@
+# aio
+[global]
+ioengine=libaio
+direct=1
+randrepeat=1
+threads=1
+runtime=15
+time_based
+size=100%
+filename=/dev/vdb
+group_reporting
+
+
+[read256B-rand]
+bs=4096
+rw=randwrite
+numjobs=1
+iodepth=128
