@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+# 生成的测试运行脚本
+# 这个文件是由CMake处理的模板
+
+PROJECT_ROOT="@CMAKE_SOURCE_DIR@"
+BUILD_DIR="@CMAKE_BINARY_DIR@"
+TEST_DIR="$BUILD_DIR/tests"
+
+echo "运行所有测试..."
+echo "项目根目录: $PROJECT_ROOT"
+echo "构建目录: $BUILD_DIR"
+echo "测试目录: $TEST_DIR"
+echo
+
+# 创建测试结果目录
+TEST_RESULTS_DIR="$PROJECT_ROOT/results/tests/$(date +%Y%m%d_%H%M%S)"
+mkdir -p "$TEST_RESULTS_DIR"
+
+echo "测试结果将保存到: $TEST_RESULTS_DIR"
+echo
+
+# 运行单元测试
+echo "=== 运行单元测试 ==="
+if [ -f "$TEST_DIR/unit/unit_tests" ]; then
+    "$TEST_DIR/unit/unit_tests" --gtest_output=xml:"$TEST_RESULTS_DIR/unit_tests.xml" | tee "$TEST_RESULTS_DIR/unit_tests.log"
+    echo "单元测试完成"
+else
+    echo "警告: 单元测试可执行文件不存在"
+fi
+echo
+
+# 运行集成测试
+echo "=== 运行集成测试 ==="
+if [ -f "$TEST_DIR/integration/integration_tests" ]; then
+    "$TEST_DIR/integration/integration_tests" --gtest_output=xml:"$TEST_RESULTS_DIR/integration_tests.xml" | tee "$TEST_RESULTS_DIR/integration_tests.log"
+    echo "集成测试完成"
+else
+    echo "警告: 集成测试可执行文件不存在"
+fi
+echo
+
+# 运行CTest（如果可用）
+echo "=== 运行CTest ==="
+cd "$BUILD_DIR"
+if command -v ctest >/dev/null 2>&1; then
+    ctest --output-on-failure --verbose | tee "$TEST_RESULTS_DIR/ctest.log"
+    echo "CTest完成"
+else
+    echo "CTest不可用"
+fi
+echo
+
+echo "所有测试完成！"
+echo "测试结果保存在: $TEST_RESULTS_DIR"

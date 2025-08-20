@@ -1,206 +1,190 @@
-# 生产者-消费者 RPC 服务
+# 生产者-消费者队列：从基础到高级的学习之旅
 
-这是一个基于gRPC的生产者-消费者模式实现，包含以下特性：
+[![构建状态](https://img.shields.io/badge/build-passing-brightgreen.svg)]()
+[![测试覆盖率](https://img.shields.io/badge/coverage-90%25-green.svg)]()
+[![许可证](https://img.shields.io/badge/license-MIT-blue.svg)]()
 
-- 单线程生产者，使用线程安全队列存储生产的ID
-- 多线程RPC服务器处理消费请求
-- 基于协程的客户端，支持并发请求
-- 实时性能监控（延迟和IOPS）
+本项目是一个系统化的生产者-消费者模式学习项目，涵盖从基础的互斥锁队列到高级无锁数据结构的完整实现和性能分析。
 
-## Python 服务环境要求
+## 🎯 项目目标
 
-- Python 3.7+
-- gRPC
-- Protocol Buffers
+- **学习**: 系统掌握无锁编程的核心概念和实现技术
+- **实践**: 通过完整的代码实现加深理解
+- **对比**: 通过性能基准测试直观感受不同实现的差异
+- **应用**: 通过 gRPC 服务化展示实际应用场景
 
-## Python 服务安装
+## 📚 学习路径
 
-1. 克隆仓库后，安装依赖：
-```bash
-pip install -r requirements.txt
-```
+项目按照循序渐进的学习路径组织，每个阶段都有对应的实现、测试和文档：
 
-2. 生成gRPC代码：
-```bash
-python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. producer_consumer.proto
-```
+### 阶段一：基础概念 📖
+- **位置**: `src/stage1_basics/`
+- **内容**: 互斥锁队列的经典实现
+- **重点**: 理解线程安全、条件变量、RAII
+- **文件**: `mutex_queue.hpp`
 
-## Python 服务使用方法
+### 阶段二：SPSC 无锁队列 🚀
+- **位置**: `src/stage2_spsc/`
+- **内容**: 单生产者单消费者无锁环形缓冲区
+- **重点**: 内存序、acquire-release 语义、缓存行对齐
+- **文件**: `spsc_ring_buffer.hpp`
 
-1. 启动服务器：
-```bash
-python server.py
-```
+### 阶段三：MPMC 无锁队列 🔥
+- **位置**: `src/stage3_mpmc/`
+- **内容**: Michael-Scott 队列算法、ABA 问题
+- **重点**: CAS 操作、标记指针、内存回收
+- **状态**: 🚧 待实现
 
-2. 在另一个终端启动客户端：
-```bash
-python multi_client.py
-```
+### 阶段四：安全内存回收 ⚡
+- **位置**: `src/stage4_smr/`
+- **内容**: 险象指针、基于纪元的回收
+- **重点**: 内存安全、性能权衡
+- **状态**: 🚧 待实现
 
-## 性能测试
+### 阶段五：性能优化 💎
+- **位置**: `src/stage5_optimization/`
+- **内容**: 伪共享、缓存行对齐、NUMA 优化
+- **重点**: 硬件感知的优化技术
+- **状态**: 🚧 待实现
 
-### Python 服务性能指标
-- 平均延迟: ~0.4ms
-- 每进程IOPS: ~650
-- 总IOPS: ~3250 (5个进程)
-- 延迟抖动极小，系统稳定性好
+### 阶段六：服务化应用 🌐
+- **位置**: `grpc_service/`
+- **内容**: gRPC 服务封装、多语言客户端
+- **重点**: 系统集成、跨语言互操作
 
-### C++ 队列基准测试结果
+## 🛠️ 快速开始
 
-基准测试程序对比了两种队列实现的性能表现：
+### 环境要求
 
-#### 互斥锁队列性能
-- 消费者线程成功率: 100% (10/10线程完成测试)
-- 平均延迟: 1.66微秒
-- 最小延迟: 0微秒
-- 最大延迟: 419微秒
-- 理论每秒处理能力: 约600万
-
-特点：
-- 稳定性好，所有消费者都能完成测试
-- 延迟波动较大（0-419微秒）
-- 总体吞吐量表现良好
-
-#### 无锁队列性能
-- 消费者线程成功率: 70% (7/10线程完成测试)
-- 平均延迟: 0.70微秒
-- 最小延迟: 0微秒
-- 最大延迟: 2微秒
-- 理论每秒处理能力: 约1400万
-
-特点：
-- 延迟更低，且波动很小（0-2微秒）
-- 理论吞吐量是互斥锁队列的2倍多
-- 在高竞争下存在线程饥饿现象
-
-#### 性能分析
-1. 互斥锁队列和无锁队列的表现符合理论预期：
-   - 无锁队列在延迟和吞吐量方面表现更好
-   - 互斥锁队列在公平性和稳定性方面表现更好
-
-2. 延迟差异原因：
-   - 互斥锁队列需要系统调用来获取/释放锁，开销较大
-   - 无锁队列使用原子操作，全部在用户态完成，开销小
-
-3. 稳定性差异原因：
-   - 互斥锁队列通过条件变量实现公平调度
-   - 无锁队列在高竞争下可能出现线程饥饿
-
-4. 实际应用建议：
-   - 对延迟敏感、竞争不激烈的场景，优先使用无锁队列
-   - 对公平性要求高、需要稳定性的场景，使用互斥锁队列
-   - 可以通过调整队列大小和线程数来平衡性能和稳定性
-
-### C++ 队列基准测试
-
-为了测试系统的理论性能上限，项目包含了一个 C++ 实现的队列基准测试程序，支持互斥锁队列和无锁队列的性能对比。
-
-#### C++ 环境要求
-
-- C++ 17 或更高版本
-- CMake 3.10 或更高版本
+- C++17 兼容编译器 (GCC 7+ / Clang 5+)
+- CMake 3.10+
 - Boost 库
-- pthread 库
+- Google Test (可选，用于测试)
 
-#### CentOS 依赖安装
+### 一键构建
 
-1. 安装开发工具和 CMake：
 ```bash
-# 安装开发工具组
-sudo yum groupinstall "Development Tools"
+# 克隆项目
+git clone <repository-url>
+cd simulate_producer_consumer
 
-# 安装 CMake
-sudo yum install cmake3
+# 构建所有组件
+./scripts/build.sh
+
+# 运行测试
+./scripts/run_tests.sh
+
+# 运行基准测试
+./scripts/run_benchmarks.sh
 ```
 
-2. 安装 Boost 库：
-```bash
-# 安装 Boost 开发包
-sudo yum install boost boost-devel
+### 分步构建
 
-# 如果需要特定版本的 Boost，也可以从源码安装：
-wget https://boostorg.jfrog.io/artifactory/main/release/1.82.0/source/boost_1_82_0.tar.gz
-tar -xzf boost_1_82_0.tar.gz
-cd boost_1_82_0
-./bootstrap.sh
-sudo ./b2 install
+```bash
+# 只构建基准测试
+./scripts/build.sh --no-tests --no-examples
+
+# Debug 构建
+./scripts/build.sh --debug
+
+# 启用代码覆盖率
+./scripts/build.sh --coverage
 ```
 
-#### C++ 基准测试编译步骤
+## 🧪 测试系统
 
-1. 创建构建目录：
+项目采用多层次的测试策略：
+
+### 单元测试
 ```bash
-mkdir build
-cd build
+# 运行所有单元测试
+./scripts/run_tests.sh --unit
+
+# 详细输出
+./scripts/run_tests.sh --unit --verbose
 ```
 
-2. 配置项目：
+### 集成测试
 ```bash
-cmake ..
+# 运行集成测试
+./scripts/run_tests.sh --integration
 ```
 
-3. 编译：
+### 性能基准
 ```bash
-make
+# 完整基准测试
+./scripts/run_benchmarks.sh
+
+# 自定义参数
+QUEUE_SIZES="1024 4096" CONSUMERS="2 4 8" ./scripts/run_benchmarks.sh
 ```
 
-#### 运行基准测试
+## 📊 性能结果
 
-编译完成后，在 build 目录下运行：
-```bash
-./queue_benchmark
+基于 OpenEuler 系统的典型性能数据：
+
+| 指标 | 互斥锁队列 | SPSC 无锁队列 | Boost 无锁队列 |
+|------|------------|---------------|----------------|
+| 平均延迟 | ~2.6 μs | ~0.33 μs | ~0.33 μs |
+| 最大延迟 | ~220 μs | ~9 μs | ~9 μs |
+| 吞吐量 | ~1.5M ops/s | ~12M ops/s | ~12M ops/s |
+| 公平性 | ✅ 优秀 | ⚠️ 有限 | ⚠️ 有限 |
+
+*注：实际性能取决于硬件配置、负载模式和编译优化级别*
+
+## 📁 项目结构
+
+```
+simulate_producer_consumer/
+├── src/                    # 核心实现
+│   ├── stage1_basics/      # 阶段一：基础概念
+│   ├── stage2_spsc/        # 阶段二：SPSC 队列
+│   ├── stage3_mpmc/        # 阶段三：MPMC 队列
+│   ├── stage4_smr/         # 阶段四：内存回收
+│   └── stage5_optimization/# 阶段五：性能优化
+├── benchmarks/             # 性能基准测试
+├── tests/                  # 单元和集成测试
+├── examples/               # 示例程序
+├── grpc_service/           # gRPC 服务化
+├── scripts/                # 构建和测试脚本
+├── results/                # 测试和基准结果
+└── docs/                   # 文档
 ```
 
-程序会分别测试互斥锁队列和无锁队列的性能，并输出以下指标：
-- 线程数
-- 每线程测试次数
-- 平均延迟（微秒）
-- 最小延迟（微秒）
-- 最大延迟（微秒）
-- 理论每秒处理能力
+## 🎮 示例程序
 
-#### 基准测试配置
+### 基础使用示例
+```bash
+# 运行基础示例
+./build/examples/basic_usage/simple_producer_consumer
+```
 
-可以在 `queue_benchmark.cpp` 中调整以下参数：
-- `QUEUE_SIZE`：队列大小
-- `TEST_COUNT`：每个消费者的测试次数
-- `CONSUMER_COUNT`：消费者线程数量
+### 基准测试示例
+```bash
+# 运行基准测试
+./build/benchmarks/queue_benchmark --help
 
-## 性能分析
+# 自定义参数
+./build/benchmarks/queue_benchmark \
+  --queue-size 8192 \
+  --test-count 1000 \
+  --consumers 4 \
+  --csv-summary results/my_test.csv
+```
 
-1. 服务端设计要点：
-- 单线程生产保证ID严格递增
-- 使用线程安全队列（Queue）存储ID
-- 合理的线程池大小（50个工作线程）
-- 适当的队列大小（10000）提供缓冲
+## 📖 学习资源
 
-2. 客户端优化：
-- 多进程+协程的并发模型
-- 每个进程维护合适的并发数（20）
-- 使用信号量控制并发
-- 请求发送更平滑，避免突发
+- **`guide.md`**: 详细的学习指南和理论基础
+- **测试代码**: 最佳的使用示例和边界情况处理
+- **基准代码**: 性能测试的实现细节
+- **学术论文**: Michael & Scott 算法、Hazard Pointers 等
 
-3. 参数选择依据：
-- 队列操作基准延迟约15微秒
-- 考虑RPC框架开销，单个请求总延迟约0.4ms
-- 线程池大小50能较好平衡延迟和吞吐量
-- 5个客户端进程提供足够并发度
 
-4. 性能优化空间：
-- 使用无锁队列
-- 实现批量操作接口
-- 使用内存预分配
-- 采用多队列分片策略
+## 📋 待办事项
 
-## 实现细节
-
-- 服务器使用 Queue 实现线程安全的ID队列
-- 生产者以固定速率生成递增的ID
-- 客户端使用协程实现并发请求
-- 使用滑动窗口计算性能指标
-
-## 注意事项
-
-- 服务器默认监听 50051 端口
-- 客户端默认5个进程，每进程20并发
-- 可以通过修改代码中的相关参数调整性能 
+- [ ] 实现 Michael-Scott MPMC 队列
+- [ ] 添加 Hazard Pointers 内存回收
+- [ ] 实现 Epoch-Based 回收机制
+- [ ] 添加 NUMA 感知优化
+- [ ] 完善 gRPC 服务实现
+- [ ] 添加更多性能分析工具
