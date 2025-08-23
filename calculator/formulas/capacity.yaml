@@ -20,6 +20,11 @@ variables:
     excel_column: "HDD容量"
     can_be_input: true
 
+  scale_ratio:
+    unit: "%"
+    excel_column: "得盘率"
+    can_be_input: true
+
 formulas:
   # 总NVMe容量计算
   total_nvme:
@@ -39,9 +44,10 @@ formulas:
     unit: "TB"
 
   avail_hdd_capacity:
-    expression: "avail_hdd_capacity = total_hdd_capacity / ec_ratio"
+    expression: "avail_hdd_capacity = total_hdd_capacity / ec_ratio * scale_ratio"
     excel_column: "HDD实际可用容量"
 
+  #
   smr_cmr_capacity:
     expression: "smr_cmr_capacity = hdd_capacity * 0.01 * hdd_count"
-    excel_column: "SMR的CMR容量"
+    excel_column: "SMR可供使用的CMR裸容量"

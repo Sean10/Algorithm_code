@@ -1,0 +1,84 @@
+# 变量定义
+variables:
+  # 采集时间差(精度最好带小数)
+  days:
+    unit: "天"
+    excel_column: "采集时间差"
+    can_be_input: true
+  
+  nand_write_start:
+    unit: "count"
+    excel_column: "开始时nand write"
+    can_be_input: true
+  
+  nand_write_end:
+    unit: "count"
+    excel_column: "结束时nand write"
+    can_be_input: true
+  
+  host_write_start:
+    unit: "count"
+    excel_column: "开始时host written"
+    can_be_input: true
+  
+  host_write_end:
+    unit: "count"
+    excel_column: "结束时host written"
+    can_be_input: true
+  
+  wear_ratio_start:
+    unit: "%"
+    excel_column: "开始时磨损比例"
+    can_be_input: true
+  
+  wear_ratio_end:
+    unit: "%"
+    excel_column: "结束时磨损比例"
+    can_be_input: true
+
+# 公式定义
+formulas:
+  nand_write_increase:
+    expression: "nand_write_increase = (nand_write_end - nand_write_start) * 32 * 1000**2"
+    excel_column: "nand写入增长量"
+    unit: "TB"
+  
+  host_write_increase:
+    expression: "host_write_increase = (host_write_end - host_write_start) * 32 * 1000**2"
+    excel_column: "host写入增长量"
+    unit: "TB"
+  
+  write_amplification:
+    expression: "write_amplification = nand_write_increase / host_write_increase"
+    excel_column: "业务写放大"
+    unit: " "
+  
+  estimated_life_start:
+    expression: "estimated_life_start = nand_write_start * 32 * 1024**2 / wear_ratio_start"
+    excel_column: "开始时推算总寿命"
+    unit: "PB"
+  
+  estimated_life_end:
+    expression: "estimated_life_end = nand_write_end * 32 * 1024**2 / wear_ratio_end"
+    excel_column: "结束时推算总寿命"
+    unit: "PB"
+  
+  nvme_pressure_daily:
+    expression: "nvme_pressure_daily = nand_write_increase / days"
+    excel_column: "单nvme盘压力"
+    unit: "TB"
+  
+  nvme_pressure_mibs:
+    expression: "nvme_pressure_mibs = nvme_pressure_daily / 86400"
+    excel_column: "单nvme盘压力速率"
+    unit: "MiB/s"
+  
+  life_expectancy_from_start:
+    expression: "life_expectancy_from_start = estimated_life_start / nvme_pressure_daily / 365"
+    excel_column: "当前压力下寿命(开始)"
+    unit: "年"
+  
+  life_expectancy_from_end:
+    expression: "life_expectancy_from_end = estimated_life_end / nvme_pressure_daily / 365"
+    excel_column: "当前压力下寿命(结束)"
+    unit: "年"

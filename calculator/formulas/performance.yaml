@@ -1,0 +1,129 @@
+# 变量定义
+variables:
+  # 基础配置参数
+  hdd_iops:
+    unit: "IOPS"
+    excel_column: "单hdd IOPS, 读性能"
+    can_be_input: true
+  
+  hdd_write_iops:
+    unit: "IOPS"
+    excel_column: "单HDD在抗随机写以后, 迫于延时, 剩余顺序写IOPS能力"
+    can_be_input: true
+  
+  disk_count:
+    unit: "个"
+    excel_column: "磁盘数量"
+    can_be_input: true
+  
+  nvme_count:
+    unit: "个"
+    excel_column: "nvme数量"
+    can_be_input: true
+  
+  data_blocks:
+    unit: "个"
+    excel_column: "K"
+    can_be_input: true
+  
+  parity_blocks:
+    unit: "个"
+    excel_column: "M"
+    can_be_input: true
+  
+  replica_count:
+    unit: "个"
+    excel_column: "聚合池副本数"
+    can_be_input: true
+  
+  stripe_unit_size:
+    unit: "KiB"
+    excel_column: "条带单元大小"
+    can_be_input: true
+  
+  aggregate_object_size:
+    unit: "KiB"
+    excel_column: "聚合对象大小"
+    can_be_input: true
+
+  op_size:
+    unit: "KiB"
+    excel_column: "业务OP大小"
+    can_be_input: true
+
+# 公式定义
+formulas:
+  write_op_size:
+    expression: "write_op_size = data_blocks * aggregate_object_size"
+    excel_column: "单次写数据量"
+    unit: "KiB"
+  
+  aggregate_pool_write_ops:
+    expression: "aggregate_pool_write_ops = ceiling(write_data_amount / stripe_unit_size)"
+    excel_column: "落聚合池写op"
+    unit: "次"
+  
+  stripe_count:
+    expression: "stripe_count = ceiling(aggregate_object_size / op_size)"
+    excel_column: "拆多少片进行校验"
+    unit: "个"
+  
+  data_pool_write_ops:
+    expression: "data_pool_write_ops = write_data_amount * ceiling(op_size / (data_blocks * stripe_unit_size)) * (data_blocks + parity_blocks)"
+    excel_column: "落数据池写OP"
+    unit: "次"
+  
+  frontend_throughput:
+    expression: "frontend_throughput = write_data_amount * op_size"
+    excel_column: "前端吞吐"
+    unit: "KiB"
+  
+  backend_write_amplification:
+    expression: "backend_write_amplification = frontend_throughput * ((replica_count - 1) + (data_blocks + parity_blocks) / data_blocks)"
+    excel_column: "后端写吞吐放大"
+    unit: "倍"
+  
+  network_bandwidth_limit:
+    expression: "network_bandwidth_limit = 2400 / network_amplification"
+    excel_column: "网络带宽上限"
+    unit: "MiB"
+  
+  single_hdd_read_requests:
+    expression: "single_hdd_read_requests = total_read_ops / disk_count"
+    excel_column: "单hdd读请求"
+    unit: "次"
+  
+  single_hdd_write_requests:
+    expression: "single_hdd_write_requests = total_write_ops / disk_count"
+    excel_column: "单hdd写请求"
+    unit: "次"
+  
+  nvme_write_performance:
+    expression: "nvme_write_performance = (write_data_amount * replica_count + write_ops) / nvme_count"
+    excel_column: "nvme写性能"
+    unit: "IOPS"
+  
+  reconstruction_read_ops:
+    expression: "reconstruction_read_ops = data_blocks + parity_blocks - 1"
+    excel_column: "数据池重构读OP"
+    unit: "次"
+  
+  reconstruction_write_ops:
+    expression: "reconstruction_write_ops = data_blocks + parity_blocks"
+    excel_column: "重构写op"
+    unit: "次"
+  
+  cluster_performance:
+    expression: "cluster_performance = write_data_amount * op_size / 1024"
+    excel_column: "集群对外性能"
+    unit: "MiB"
+
+# 输出限制条件
+# constraints:
+#   network_bandwidth:
+#     expression: "network_bandwidth <= 2400"
+#     message: "网络带宽超过上限2400MiB/s"
+  
+#   hdd_iops_limit:
+#     expression: "single_hdd_write_requests <= hdd_write_iops"
+#     message: "单HDD写IOPS超过限制"
