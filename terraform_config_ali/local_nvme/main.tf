@@ -12,7 +12,7 @@ data "alicloud_instance_types" "cheapest" {
   instance_charge_type = "PostPaid"
   spot_strategy      = "SpotWithPriceLimit"
   instance_type_family = var.instance_type_family
-#   cpu_core_count       = var.cpu_core_count == 0 ? 2 : var.cpu_core_count
+  cpu_core_count       = var.cpu_core_count == 0 ? 2 : var.cpu_core_count
 #   memory_size          = var.memory_size == 0 ? 4096 : var.memory_size
   # 不是所有都有price, 所以没法排序
   sorted_by = "CPU"

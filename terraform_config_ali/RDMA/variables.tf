@@ -57,3 +57,8 @@ variable "spot_max_price" {
   type    = number
   default = 0.2
 }
+
+variable "cloud_disk_size" {
+  type    = number
+  default = 20
+}

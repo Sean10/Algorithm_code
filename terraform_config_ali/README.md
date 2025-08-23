@@ -34,3 +34,6 @@ bash -x cleanup.sh local_nvme
 # bash -x cleanup.sh RDMA
 
 ```
+
+# 待办
+* 默认没返回价格, 得单独查询, 疑似和腾讯云一样? terraform的provider中没有默认输出.
