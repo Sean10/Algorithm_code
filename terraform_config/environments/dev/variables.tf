@@ -68,3 +68,9 @@ variable "os_name" {
   type        = string
   default     = "ubuntu"
 }
+
+variable "data_disk_size" {
+  description = "数据盘大小(GB)"
+  type        = number
+  default     = 50
+}

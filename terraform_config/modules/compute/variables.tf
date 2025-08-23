@@ -88,3 +88,9 @@ variable "system_disk_size" {
   type        = number
   default     = 40
 }
+
+variable "data_disk_size" {
+  description = "数据盘大小(GB)"
+  type        = number
+  default     = 50
+}

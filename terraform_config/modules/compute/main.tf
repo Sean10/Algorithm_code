@@ -109,7 +109,7 @@ resource "tencentcloud_instance" "cvm" {
 resource "tencentcloud_cbs_storage" "my_storage" {
   storage_type      = "CLOUD_HSSD"
   storage_name      = "${var.environment}-storage"
-  storage_size      = 50
+  storage_size      = var.data_disk_size
   availability_zone = var.availability_zone
   project_id        = 0
   encrypt           = false

@@ -68,4 +68,6 @@ module "compute" {
   system_disk_size    = var.system_disk_size
   os_name             = var.os_name
   password            = var.password
+
+  data_disk_size = var.data_disk_size
 }
