@@ -1,0 +1,13 @@
+scrape_configs:
+  # 从 OpenTelemetry Collector 抓取指标
+  - job_name: 'otel-collector'
+    scrape_interval: 5s
+    static_configs:
+      - targets: ['otel-collector:8889']  # Collector 暴露的 Prometheus 指标端点
+    metrics_path: '/metrics'
+    
+  # 可选：抓取 Prometheus 自身的指标
+  - job_name: 'prometheus'
+    scrape_interval: 15s
+    static_configs:
+      - targets: ['localhost:9090']

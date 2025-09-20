@@ -1,0 +1,49 @@
+services:
+  # 使用 Grafana Alloy 替代 OpenTelemetry Collector
+  alloy:
+    image: grafana/alloy:latest
+    ports:
+      - "4317:4317"   # OTLP gRPC receiver
+      - "4318:4318"   # OTLP HTTP receiver
+      - "8889:8889"   # Prometheus metrics endpoint
+      - "12345:12345" # Alloy UI
+    volumes:
+      - ./config/alloy.alloy:/etc/alloy/config.alloy
+    command: ["run", "--server.http.listen-addr=0.0.0.0:12345", "/etc/alloy/config.alloy"]
+    depends_on:
+      - prometheus
+      - loki
+
+  # 指标存储：Prometheus
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./config/prometheus.yml:/etc/prometheus/prometheus.yml
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--web.enable-remote-write-receiver'
+
+  # 日志存储：Loki
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - "3100:3100"
+      - "9096:9096"
+    volumes:
+      - ./config/loki.yaml:/etc/loki/local-config.yaml
+    command: -config.file=/etc/loki/local-config.yaml
+
+  # 可视化平台：Grafana
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin  # 初始密码
+    volumes:
+      - grafana-data:/var/lib/grafana
+
+volumes:
+  grafana-data:
