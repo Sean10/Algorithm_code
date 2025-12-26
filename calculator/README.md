@@ -137,6 +137,11 @@ global:
 <key>NSAppleEventsUsageDescription</key>
 <string>This app requires Apple Events access to automate system functions.</string>
 ```
+3. **测试时的临时目录权限问题**：
+   - macOS 的 TCC (Transparency, Consent, and Control) 机制会追踪每个具体路径的授权状态
+   - `tempfile.mkdtemp()` 每次创建的随机临时目录（如 `/var/folders/...`）都需要单独授权
+   - 解决方案：测试使用项目目录下的固定 `test_temp/` 目录
+   - 首次运行测试时会弹出权限对话框，点击"好"授权后即可正常使用
 
 ### 文件监听限制
 
