@@ -1,11 +1,18 @@
 """
 存储容量计算器 - Streamlit Web 前端
+支持数据持久化、列名编辑、自动公式识别
 """
 import streamlit as st
 import pandas as pd
 import io
 import os
+from datetime import datetime
 from calculator_core import StorageCalculator, UnitConverter
+
+# 数据文件路径
+SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
+DATA_FILE = os.path.join(SCRIPT_DIR, "calc_data.xlsx")
+BACKUP_DIR = os.path.join(SCRIPT_DIR, "backups")
 
 # 页面配置
 st.set_page_config(
@@ -98,6 +105,27 @@ st.markdown("""
         background: linear-gradient(90deg, transparent, #667eea, transparent);
         margin: 2rem 0;
     }
+    
+    /* 列管理区域 */
+    .column-tag {
+        display: inline-block;
+        padding: 0.2rem 0.5rem;
+        margin: 0.1rem;
+        border-radius: 4px;
+        font-size: 0.8rem;
+    }
+    .column-input {
+        background: #e3f2fd;
+        color: #1565c0;
+    }
+    .column-output {
+        background: #e8f5e9;
+        color: #2e7d32;
+    }
+    .column-unknown {
+        background: #fff3e0;
+        color: #ef6c00;
+    }
 </style>
 """, unsafe_allow_html=True)
 
@@ -112,6 +140,41 @@ def reload_calculator():
     """重新加载计算器"""
     st.cache_resource.clear()
     return get_calculator()
+
+
+def load_data_from_file(file_path=DATA_FILE):
+    """从文件加载数据"""
+    if os.path.exists(file_path):
+        try:
+            df = pd.read_excel(file_path)
+            # 将所有列转为字符串类型，便于编辑
+            for col in df.columns:
+                df[col] = df[col].astype(str).replace('nan', '')
+            return df
+        except Exception as e:
+            st.error(f"加载数据文件失败: {str(e)}")
+    return None
+
+
+def save_data_to_file(df, file_path=DATA_FILE, create_backup=True):
+    """保存数据到文件"""
+    try:
+        # 创建备份
+        if create_backup and os.path.exists(file_path):
+            if not os.path.exists(BACKUP_DIR):
+                os.makedirs(BACKUP_DIR)
+            backup_name = f"calc_data_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+            backup_path = os.path.join(BACKUP_DIR, backup_name)
+            # 复制当前文件作为备份
+            import shutil
+            shutil.copy2(file_path, backup_path)
+        
+        # 保存数据
+        df.to_excel(file_path, index=False, sheet_name='计算数据')
+        return True
+    except Exception as e:
+        st.error(f"保存数据失败: {str(e)}")
+        return False
 
 
 def render_sidebar(calculator):
@@ -133,7 +196,6 @@ def render_sidebar(calculator):
             help_text += f", 单位: {unit}"
         help_text += "\n支持: 3.84, 3.84TB, 960G 等格式"
         
-        # 创建文本输入框，支持带单位输入
         new_value = st.sidebar.text_input(
             f"{display_name}",
             value=str(default_value) if default_value else "",
@@ -141,7 +203,6 @@ def render_sidebar(calculator):
             key=f"default_{var_name}"
         )
         
-        # 解析输入值（支持带单位）
         if new_value:
             parsed = UnitConverter.parse_value(new_value)
             modified_defaults[var_name] = parsed if parsed is not None else 0
@@ -159,6 +220,22 @@ def render_sidebar(calculator):
                 st.caption(f"单位: {formula_data['unit']}")
             st.markdown("---")
     
+    # 已知列名映射
+    with st.sidebar.expander("📋 列名映射", expanded=False):
+        column_map = calculator.get_column_to_variable_map()
+        var_to_col = calculator.get_variable_to_column_map()
+        
+        st.markdown("**输入变量:**")
+        for var_name, var_info in calculator.variables.items():
+            if var_info.get('can_be_input', False):
+                col_name = var_to_col.get(var_name, var_name)
+                st.markdown(f"- `{col_name}` → {var_name}")
+        
+        st.markdown("**输出公式:**")
+        for name in calculator.formulas.keys():
+            col_name = var_to_col.get(name, name)
+            st.markdown(f"- `{col_name}` → {name}")
+    
     # 操作按钮
     st.sidebar.markdown("### 操作")
     if st.sidebar.button("🔄 重新加载配置", use_container_width=True):
@@ -168,44 +245,83 @@ def render_sidebar(calculator):
     return modified_defaults
 
 
-def create_input_dataframe(calculator, modified_defaults):
-    """创建输入数据框"""
-    input_vars = calculator.get_input_variables()
-    output_formulas = calculator.get_output_formulas()
+def render_column_manager(calculator, current_columns):
+    """渲染列管理器"""
+    st.markdown("### 📝 列管理")
     
-    # 构建列配置
-    columns = []
-    column_config = {}
+    col1, col2, col3 = st.columns([2, 2, 1])
     
-    # 添加输入变量列 - 使用 TextColumn 支持带单位输入（如 3.84TB, 960G）
-    for var_name, var_info in input_vars.items():
-        display_name = var_info['display_name']
-        columns.append(display_name)
+    with col1:
+        st.markdown("**当前列（点击标签查看类型）:**")
+        column_html = ""
+        for col in current_columns:
+            col_type, var_name = calculator.identify_column_type(col)
+            if col_type == 'input':
+                column_html += f'<span class="column-tag column-input" title="输入变量: {var_name}">{col}</span> '
+            elif col_type == 'output':
+                column_html += f'<span class="column-tag column-output" title="输出公式: {var_name}">{col}</span> '
+            else:
+                column_html += f'<span class="column-tag column-unknown" title="未识别">{col}</span> '
+        st.markdown(column_html, unsafe_allow_html=True)
+        st.caption("🔵输入变量 🟢输出公式 🟠未识别")
+    
+    with col2:
+        # 添加新列
+        known_columns = calculator.get_all_known_columns()
+        available_columns = [c for c in known_columns if c not in current_columns]
         
-        unit = var_info.get('unit', '')
-        help_text = f"变量: {var_name}"
-        if unit:
-            help_text += f"\n单位: {unit}"
-        help_text += "\n支持输入: 3.84, 3.84TB, 960G, 0.9 等格式"
-        
-        column_config[display_name] = st.column_config.TextColumn(
-            display_name,
-            help=help_text,
-            default=""
-        )
-    
-    # 添加输出公式列
-    for name, formula_data in output_formulas.items():
-        display_name = formula_data['display_name']
-        if display_name not in columns:
-            columns.append(display_name)
-            column_config[display_name] = st.column_config.TextColumn(
-                display_name,
-                help=f"公式: {formula_data['expression']}",
-                disabled=True
+        if available_columns:
+            new_col = st.selectbox(
+                "添加已知列",
+                options=[""] + available_columns,
+                key="add_known_col"
             )
+            if st.button("➕ 添加列", key="btn_add_known"):
+                if new_col:
+                    return ('add', new_col)
+        
+        # 添加自定义列
+        custom_col = st.text_input("或输入自定义列名", key="custom_col_name")
+        if st.button("➕ 添加自定义列", key="btn_add_custom"):
+            if custom_col and custom_col not in current_columns:
+                return ('add', custom_col)
     
-    return columns, column_config
+    with col3:
+        # 删除列
+        col_to_delete = st.selectbox(
+            "选择要删除的列",
+            options=[""] + list(current_columns),
+            key="col_to_delete"
+        )
+        if st.button("🗑️ 删除列", key="btn_delete_col"):
+            if col_to_delete:
+                return ('delete', col_to_delete)
+    
+    return None
+
+
+def render_column_rename(current_columns):
+    """渲染列重命名功能"""
+    with st.expander("✏️ 重命名列", expanded=False):
+        col1, col2, col3 = st.columns([2, 2, 1])
+        
+        with col1:
+            old_name = st.selectbox(
+                "选择要重命名的列",
+                options=[""] + list(current_columns),
+                key="rename_old"
+            )
+        
+        with col2:
+            new_name = st.text_input("新列名", key="rename_new")
+        
+        with col3:
+            st.markdown("<br>", unsafe_allow_html=True)
+            if st.button("确认重命名", key="btn_rename"):
+                if old_name and new_name and new_name != old_name:
+                    return (old_name, new_name)
+    
+    return None
 
 
 def calculate_row(calculator, row_data, modified_defaults):
@@ -213,26 +329,123 @@ def calculate_row(calculator, row_data, modified_defaults):
     # 合并默认值和行数据
     input_data = modified_defaults.copy()
     for key, value in row_data.items():
-        if pd.notna(value) and value != '':
+        if pd.notna(value) and value != '' and value != 'nan':
             input_data[key] = value
     
-    results = calculator.calculate(input_data)
+    # 使用新的列名感知计算方法
+    results = calculator.calculate_with_columns(input_data)
     return results
+
+
+def create_default_dataframe(calculator, modified_defaults):
+    """创建默认数据框"""
+    input_vars = calculator.get_input_variables()
+    output_formulas = calculator.get_output_formulas()
+    
+    initial_data = {}
+    
+    # 添加输入变量列
+    for var_name, var_info in input_vars.items():
+        display_name = var_info['display_name']
+        default_val = modified_defaults.get(var_name, 0)
+        initial_data[display_name] = [str(default_val) if default_val else '']
+    
+    # 添加输出列
+    for name, formula_data in output_formulas.items():
+        display_name = formula_data['display_name']
+        if display_name not in initial_data:
+            initial_data[display_name] = ['']
+    
+    return pd.DataFrame(initial_data)
 
 
 def main():
     """主函数"""
-    # 获取计算器
     calculator = get_calculator()
     
     # 标题
     st.markdown('<h1 class="main-title">存储容量计算器</h1>', unsafe_allow_html=True)
-    st.markdown('<p class="sub-title">基于公式配置的存储参数计算工具</p>', unsafe_allow_html=True)
+    st.markdown('<p class="sub-title">基于公式配置的存储参数计算工具 | 支持数据持久化与列管理</p>', unsafe_allow_html=True)
     
-    # 渲染侧边栏并获取修改后的默认值
+    # 渲染侧边栏
     modified_defaults = render_sidebar(calculator)
     
-    # 主内容区
+    # 初始化session state
+    if 'df' not in st.session_state:
+        # 尝试从文件加载
+        loaded_df = load_data_from_file()
+        if loaded_df is not None:
+            st.session_state.df = loaded_df
+            st.info(f"已从 {DATA_FILE} 加载 {len(loaded_df)} 行数据")
+        else:
+            st.session_state.df = create_default_dataframe(calculator, modified_defaults)
+    
+    # 数据持久化控制
+    st.markdown("### 💾 数据持久化")
+    col1, col2, col3, col4 = st.columns([1, 1, 1, 2])
+    
+    with col1:
+        if st.button("💾 保存到服务器", type="primary", use_container_width=True):
+            if save_data_to_file(st.session_state.df):
+                st.success("数据已保存!")
+    
+    with col2:
+        if st.button("📂 从服务器加载", use_container_width=True):
+            loaded_df = load_data_from_file()
+            if loaded_df is not None:
+                st.session_state.df = loaded_df
+                st.success(f"已加载 {len(loaded_df)} 行数据")
+                st.rerun()
+    
+    with col3:
+        # 加载现有的calc.xlsx
+        if st.button("📥 导入calc.xlsx", use_container_width=True):
+            calc_file = os.path.join(SCRIPT_DIR, "calc.xlsx")
+            if os.path.exists(calc_file):
+                try:
+                    df = pd.read_excel(calc_file)
+                    for col in df.columns:
+                        df[col] = df[col].astype(str).replace('nan', '')
+                    st.session_state.df = df
+                    st.success(f"已导入 {len(df)} 行数据")
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"导入失败: {str(e)}")
+            else:
+                st.warning("calc.xlsx 文件不存在")
+    
+    with col4:
+        st.caption(f"数据文件: {DATA_FILE}")
+    
+    st.markdown("---")
+    
+    # 列管理
+    current_columns = list(st.session_state.df.columns)
+    col_action = render_column_manager(calculator, current_columns)
+    
+    if col_action:
+        action, col_name = col_action
+        if action == 'add' and col_name not in st.session_state.df.columns:
+            st.session_state.df[col_name] = ''
+            st.success(f"已添加列: {col_name}")
+            st.rerun()
+        elif action == 'delete' and col_name in st.session_state.df.columns:
+            st.session_state.df = st.session_state.df.drop(columns=[col_name])
+            st.success(f"已删除列: {col_name}")
+            st.rerun()
+    
+    # 列重命名
+    rename_action = render_column_rename(current_columns)
+    if rename_action:
+        old_name, new_name = rename_action
+        if old_name in st.session_state.df.columns:
+            st.session_state.df = st.session_state.df.rename(columns={old_name: new_name})
+            st.success(f"已将列 '{old_name}' 重命名为 '{new_name}'")
+            st.rerun()
+    
+    st.markdown("---")
+    
+    # 主内容区 - 数据表格
     col1, col2 = st.columns([3, 1])
     
     with col1:
@@ -240,29 +453,37 @@ def main():
         st.caption("编辑输入参数，系统将自动计算结果。支持输入带单位的值，如: `3.84TB`, `960GB`, `3.2TiB`, `0.9` 等")
     
     with col2:
-        auto_calc = st.checkbox("自动计算", value=True, help="编辑后自动触发计算")
+        auto_calc = st.checkbox("自动计算", value=False, help="编辑后自动触发计算（大数据量时建议关闭）")
     
-    # 创建数据框配置
-    columns, column_config = create_input_dataframe(calculator, modified_defaults)
-    
-    # 初始化或获取session state中的数据
-    if 'df' not in st.session_state:
-        # 创建初始数据框，包含一行默认数据（字符串格式，支持带单位）
-        initial_data = {}
-        input_vars = calculator.get_input_variables()
-        for var_name, var_info in input_vars.items():
-            display_name = var_info['display_name']
-            default_val = modified_defaults.get(var_name, 0)
-            # 转为字符串，保留小数
-            initial_data[display_name] = [str(default_val) if default_val else '']
-        
-        # 添加输出列（空值）
-        for name, formula_data in calculator.get_output_formulas().items():
-            display_name = formula_data['display_name']
-            if display_name not in initial_data:
-                initial_data[display_name] = ['']
-        
-        st.session_state.df = pd.DataFrame(initial_data)
+    # 构建列配置
+    column_config = {}
+    for col in st.session_state.df.columns:
+        col_type, var_name = calculator.identify_column_type(col)
+        if col_type == 'input':
+            var_info = calculator.variables.get(var_name, {})
+            unit = var_info.get('unit', '')
+            help_text = f"输入变量: {var_name}"
+            if unit:
+                help_text += f"\n单位: {unit}"
+            column_config[col] = st.column_config.TextColumn(
+                col,
+                help=help_text,
+                default=""
+            )
+        elif col_type == 'output':
+            formula_data = calculator.formulas.get(var_name, {})
+            expr = formula_data.get('expression', '')
+            column_config[col] = st.column_config.TextColumn(
+                col,
+                help=f"输出公式: {expr}",
+                disabled=False  # 允许编辑输出列，以便手动输入已知值
+            )
+        else:
+            column_config[col] = st.column_config.TextColumn(
+                col,
+                help="自定义列",
+                default=""
+            )
     
     # 可编辑数据表格
     edited_df = st.data_editor(
@@ -272,6 +493,9 @@ def main():
         use_container_width=True,
         key="data_editor"
     )
+    
+    # 更新session state
+    st.session_state.df = edited_df
     
     # 计算按钮
     col1, col2, col3 = st.columns([1, 1, 2])
@@ -285,19 +509,17 @@ def main():
     # 处理清空
     if clear_button:
         output_formulas = calculator.get_output_formulas()
-        for name, formula_data in output_formulas.items():
-            display_name = formula_data['display_name']
-            if display_name in edited_df.columns:
-                edited_df[display_name] = ''
+        var_to_col = calculator.get_variable_to_column_map()
+        for name in output_formulas.keys():
+            col_name = var_to_col.get(name, name)
+            if col_name in edited_df.columns:
+                edited_df[col_name] = ''
         st.session_state.df = edited_df
         st.rerun()
     
     # 执行计算
     if calc_button or auto_calc:
-        input_vars = calculator.get_input_variables()
-        output_formulas = calculator.get_output_formulas()
-        
-        # 逐行计算
+        var_to_col = calculator.get_variable_to_column_map()
         result_df = edited_df.copy()
         
         for idx, row in edited_df.iterrows():
@@ -306,15 +528,16 @@ def main():
             
             if results:
                 # 更新结果列
-                for name, formula_data in output_formulas.items():
-                    display_name = formula_data['display_name']
-                    if name in results:
-                        formatted = calculator.format_result(name, results[name])
-                        result_df.at[idx, display_name] = formatted
+                for var_name, value in results.items():
+                    col_name = var_to_col.get(var_name, var_name)
+                    if col_name in result_df.columns:
+                        # 检查是否是输出公式
+                        if var_name in calculator.formulas:
+                            formatted = calculator.format_result(var_name, value)
+                            result_df.at[idx, col_name] = formatted
         
         st.session_state.df = result_df
         
-        # 只在点击按钮时rerun，自动计算时不rerun避免循环
         if calc_button:
             st.rerun()
     
@@ -330,7 +553,7 @@ def main():
         uploaded_file = st.file_uploader(
             "选择CSV或Excel文件",
             type=['csv', 'xlsx', 'xls'],
-            help="上传包含输入参数的文件"
+            help="上传包含输入参数的文件，列名将自动识别"
         )
         
         if uploaded_file is not None:
@@ -340,13 +563,12 @@ def main():
                 else:
                     import_df = pd.read_excel(uploaded_file)
                 
-                # 确保所有必要的列都存在
-                for col in columns:
-                    if col not in import_df.columns:
-                        import_df[col] = ''
+                # 转换为字符串
+                for col in import_df.columns:
+                    import_df[col] = import_df[col].astype(str).replace('nan', '')
                 
-                st.session_state.df = import_df[columns]
-                st.success(f"成功导入 {len(import_df)} 行数据")
+                st.session_state.df = import_df
+                st.success(f"成功导入 {len(import_df)} 行数据，{len(import_df.columns)} 列")
                 st.rerun()
             except Exception as e:
                 st.error(f"导入失败: {str(e)}")
@@ -391,24 +613,23 @@ def main():
         st.markdown("### 📈 结果可视化")
         
         output_formulas = calculator.get_output_formulas()
+        var_to_col = calculator.get_variable_to_column_map()
         numeric_columns = []
         
         # 找出可以可视化的数值列
-        for name, formula_data in output_formulas.items():
-            display_name = formula_data['display_name']
-            if display_name in st.session_state.df.columns:
+        for name in output_formulas.keys():
+            col_name = var_to_col.get(name, name)
+            if col_name in st.session_state.df.columns:
                 try:
-                    # 尝试提取数值
-                    col_data = st.session_state.df[display_name].apply(
-                        lambda x: float(str(x).split()[0]) if pd.notna(x) and str(x).strip() else None
+                    col_data = st.session_state.df[col_name].apply(
+                        lambda x: float(str(x).split()[0]) if pd.notna(x) and str(x).strip() and str(x) != 'nan' else None
                     )
                     if col_data.notna().any():
-                        numeric_columns.append((display_name, col_data))
+                        numeric_columns.append((col_name, col_data))
                 except:
                     pass
         
         if numeric_columns:
-            # 选择要可视化的列
             selected_cols = st.multiselect(
                 "选择要可视化的指标",
                 [col[0] for col in numeric_columns],
@@ -432,7 +653,7 @@ def main():
     st.markdown("---")
     st.markdown(
         '<p style="text-align: center; color: #888; font-size: 0.8rem;">'
-        '存储容量计算器 v1.0 | 基于 Streamlit 构建'
+        '存储容量计算器 v2.0 | 支持数据持久化与列管理 | 基于 Streamlit 构建'
         '</p>',
         unsafe_allow_html=True
     )
@@ -440,4 +661,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

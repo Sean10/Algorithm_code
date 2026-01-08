@@ -466,3 +466,154 @@ class StorageCalculator:
             formatted[name] = self.format_result(name, value)
         return formatted
 
+    def get_column_to_variable_map(self):
+        """获取列名到变量名的映射"""
+        column_map = {}
+        
+        # 从变量定义中获取映射
+        for var_name, var_info in self.variables.items():
+            display_name = var_info.get('display_name', var_name)
+            column_map[display_name] = var_name
+            column_map[var_name] = var_name  # 也支持直接用变量名
+        
+        # 从公式定义中获取映射
+        for name, formula_data in self.formulas.items():
+            display_name = formula_data.get('display_name', name)
+            column_map[display_name] = name
+            column_map[name] = name
+        
+        return column_map
+
+    def get_variable_to_column_map(self):
+        """获取变量名到列名的映射"""
+        var_map = {}
+        
+        for var_name, var_info in self.variables.items():
+            var_map[var_name] = var_info.get('display_name', var_name)
+        
+        for name, formula_data in self.formulas.items():
+            var_map[name] = formula_data.get('display_name', name)
+        
+        return var_map
+
+    def calculate_with_columns(self, row_data, column_map=None):
+        """根据列名进行计算，自动识别公式
+        
+        Args:
+            row_data: 行数据字典，键为列名（显示名）
+            column_map: 列名到变量名的映射，如果为None则自动生成
+            
+        Returns:
+            计算结果字典，键为变量名
+        """
+        if not row_data:
+            return None
+        
+        if column_map is None:
+            column_map = self.get_column_to_variable_map()
+        
+        try:
+            known_values = {}
+            
+            # 将列名转换为变量名，并解析值
+            for col_name, value in row_data.items():
+                if value is None or (isinstance(value, str) and not value.strip()):
+                    continue
+                
+                # 查找对应的变量名
+                var_name = column_map.get(col_name)
+                if var_name is None:
+                    # 尝试模糊匹配
+                    for key, mapped_var in column_map.items():
+                        if key.lower() == col_name.lower():
+                            var_name = mapped_var
+                            break
+                
+                if var_name:
+                    parsed_value = self.unit_converter.parse_value(value)
+                    if parsed_value is not None:
+                        known_values[var_name] = float(parsed_value)
+            
+            # 使用默认值填充
+            for var_name in self.variables:
+                if var_name not in known_values and var_name in self._calculated_values:
+                    known_values[var_name] = self._calculated_values[var_name]
+            
+            if not known_values:
+                return None
+            
+            # 迭代求解（与原calculate方法相同）
+            equation_deps = {}
+            for name, formula_data in self.formulas.items():
+                if name not in known_values:
+                    equation_deps[name] = {
+                        'equation': formula_data['equation'],
+                        'variables': set(formula_data['variables']),
+                        'solved': False
+                    }
+            
+            results = known_values.copy()
+            
+            while True:
+                made_progress = False
+                for name, eq_data in equation_deps.items():
+                    if eq_data['solved']:
+                        continue
+                    
+                    if all(var in results for var in eq_data['variables']):
+                        try:
+                            eq = eq_data['equation']
+                            subs_dict = {Symbol(var): results[var] for var in eq_data['variables']}
+                            solution = solve(eq.subs(subs_dict))
+                            if solution:
+                                results[name] = float(solution[0])
+                                eq_data['solved'] = True
+                                made_progress = True
+                        except Exception as e:
+                            logger.warning(f"求解方程 {name} 失败: {str(e)}")
+                
+                if not made_progress:
+                    break
+            
+            self._calculated_values.update(results)
+            return results
+        
+        except Exception as e:
+            logger.error(f"计算过程出错: {str(e)}")
+            return None
+
+    def get_all_known_columns(self):
+        """获取所有已知的列名（变量和公式的显示名）"""
+        columns = set()
+        
+        for var_name, var_info in self.variables.items():
+            columns.add(var_info.get('display_name', var_name))
+        
+        for name, formula_data in self.formulas.items():
+            columns.add(formula_data.get('display_name', name))
+        
+        return list(columns)
+
+    def identify_column_type(self, column_name):
+        """识别列名的类型
+        
+        Returns:
+            tuple: (type, var_name) 
+            type: 'input' | 'output' | 'unknown'
+            var_name: 对应的变量名或None
+        """
+        # 检查是否是输入变量
+        for var_name, var_info in self.variables.items():
+            display_name = var_info.get('display_name', var_name)
+            if column_name == display_name or column_name == var_name:
+                if var_info.get('can_be_input', False):
+                    return ('input', var_name)
+        
+        # 检查是否是输出公式
+        for name, formula_data in self.formulas.items():
+            display_name = formula_data.get('display_name', name)
+            if column_name == display_name or column_name == name:
+                return ('output', name)
+        
+        return ('unknown', None)
+
