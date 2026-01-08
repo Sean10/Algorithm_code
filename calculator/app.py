@@ -6,13 +6,58 @@ import streamlit as st
 import pandas as pd
 import io
 import os
+import time
+import threading
 from datetime import datetime
+from pathlib import Path
+from watchdog.events import FileSystemEventHandler
+from watchdog.observers import Observer
 from calculator_core import StorageCalculator, UnitConverter
 
 # 数据文件路径
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DATA_FILE = os.path.join(SCRIPT_DIR, "calc_data.xlsx")
 BACKUP_DIR = os.path.join(SCRIPT_DIR, "backups")
+FORMULA_DIR = os.path.join(SCRIPT_DIR, "formulas")
+
+
+class FormulaWatcher(FileSystemEventHandler):
+    """配置文件监听器"""
+    
+    def __init__(self, formula_dir):
+        self.formula_dir = os.path.abspath(formula_dir)
+        self.last_modified = 0
+        
+    def on_modified(self, event):
+        """检测到文件修改时触发"""
+        # 只监听 yaml 文件的修改
+        if event.src_path.endswith('.yaml') and os.path.dirname(event.src_path) == self.formula_dir:
+            current_time = time.time()
+            # 防抖：1秒内只触发一次
+            if current_time - self.last_modified < 1:
+                return
+            self.last_modified = current_time
+            
+            # 清除缓存，触发重新加载
+            st.cache_resource.clear()
+            # 设置重载标记
+            if 'config_reload_trigger' not in st.session_state:
+                st.session_state.config_reload_trigger = 0
+            st.session_state.config_reload_trigger += 1
+
+
+def start_formula_watcher():
+    """启动配置文件监听器"""
+    if 'formula_observer' not in st.session_state:
+        try:
+            event_handler = FormulaWatcher(FORMULA_DIR)
+            observer = Observer()
+            observer.schedule(event_handler, FORMULA_DIR, recursive=False)
+            observer.start()
+            st.session_state.formula_observer = observer
+            st.session_state.formula_watcher = event_handler
+        except Exception as e:
+            st.error(f"启动配置文件监听失败: {str(e)}")
 
 # 页面配置
 st.set_page_config(
@@ -361,6 +406,20 @@ def create_default_dataframe(calculator, modified_defaults):
 
 def main():
     """主函数"""
+    # 启动配置文件监听器（只启动一次）
+    start_formula_watcher()
+    
+    # 检查是否有配置重载触发
+    if 'config_reload_trigger' in st.session_state and st.session_state.config_reload_trigger > 0:
+        if 'last_reload_trigger' not in st.session_state:
+            st.session_state.last_reload_trigger = 0
+        
+        # 只在触发值变化时显示提示
+        if st.session_state.config_reload_trigger != st.session_state.last_reload_trigger:
+            st.info("✨ 检测到配置文件更新，已自动重新加载")
+            st.session_state.last_reload_trigger = st.session_state.config_reload_trigger
+    
+    # 获取计算器实例
     calculator = get_calculator()
     
     # 标题
@@ -494,11 +553,12 @@ def main():
         key="data_editor"
     )
     
-    # 更新session state
-    st.session_state.df = edited_df
+    # 检测数据是否有变化（用户编辑了单元格）
+    # 注意：不要在这里直接更新 session_state.df，否则会导致编辑被覆盖
+    # 只在用户明确操作时（计算、保存、清空）才更新
     
     # 计算按钮
-    col1, col2, col3 = st.columns([1, 1, 2])
+    col1, col2, col3, col4 = st.columns([1, 1, 1, 1])
 
     with col1:
         calc_button = st.button("🔢 计算", type="primary", width='stretch')
@@ -506,15 +566,27 @@ def main():
     with col2:
         clear_button = st.button("🗑️ 清空结果", width='stretch')
 
+    with col3:
+        # 同步按钮 - 用于手动同步编辑器中的数据到 session state
+        sync_button = st.button("🔄 同步编辑", help="将编辑器中的修改同步到内存（编辑后建议点击此按钮再计算）", width='stretch')
+    
+    # 处理同步
+    if sync_button:
+        st.session_state.df = edited_df
+        st.success("编辑已同步")
+        st.rerun()
+    
     # 处理清空
     if clear_button:
+        # 先同步最新编辑
+        result_df = edited_df.copy()
         output_formulas = calculator.get_output_formulas()
         var_to_col = calculator.get_variable_to_column_map()
         for name in output_formulas.keys():
             col_name = var_to_col.get(name, name)
-            if col_name in edited_df.columns:
-                edited_df[col_name] = ''
-        st.session_state.df = edited_df
+            if col_name in result_df.columns:
+                result_df[col_name] = ''
+        st.session_state.df = result_df
         st.rerun()
     
     # 执行计算
@@ -564,9 +636,10 @@ def main():
         """, unsafe_allow_html=True)
         
         var_to_col = calculator.get_variable_to_column_map()
+        # 使用编辑器中的最新数据进行计算
         result_df = edited_df.copy()
         
-        for idx, row in edited_df.iterrows():
+        for idx, row in result_df.iterrows():
             row_data = row.to_dict()
             results = calculate_row(calculator, row_data, modified_defaults)
             
