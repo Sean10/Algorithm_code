@@ -238,7 +238,7 @@ def render_sidebar(calculator):
     
     # 操作按钮
     st.sidebar.markdown("### 操作")
-    if st.sidebar.button("🔄 重新加载配置", use_container_width=True):
+    if st.sidebar.button("🔄 重新加载配置", width='stretch'):
         reload_calculator()
         st.rerun()
     
@@ -385,12 +385,12 @@ def main():
     col1, col2, col3, col4 = st.columns([1, 1, 1, 2])
     
     with col1:
-        if st.button("💾 保存到服务器", type="primary", use_container_width=True):
+        if st.button("💾 保存到服务器", type="primary", width='stretch'):
             if save_data_to_file(st.session_state.df):
                 st.success("数据已保存!")
     
     with col2:
-        if st.button("📂 从服务器加载", use_container_width=True):
+        if st.button("📂 从服务器加载", width='stretch'):
             loaded_df = load_data_from_file()
             if loaded_df is not None:
                 st.session_state.df = loaded_df
@@ -399,7 +399,7 @@ def main():
     
     with col3:
         # 加载现有的calc.xlsx
-        if st.button("📥 导入calc.xlsx", use_container_width=True):
+        if st.button("📥 导入calc.xlsx", width='stretch'):
             calc_file = os.path.join(SCRIPT_DIR, "calc.xlsx")
             if os.path.exists(calc_file):
                 try:
@@ -490,7 +490,7 @@ def main():
         st.session_state.df,
         column_config=column_config,
         num_rows="dynamic",
-        use_container_width=True,
+        width='stretch',
         key="data_editor"
     )
     
@@ -501,10 +501,10 @@ def main():
     col1, col2, col3 = st.columns([1, 1, 2])
 
     with col1:
-        calc_button = st.button("🔢 计算", type="primary", use_container_width=True)
+        calc_button = st.button("🔢 计算", type="primary", width='stretch')
 
     with col2:
-        clear_button = st.button("🗑️ 清空结果", use_container_width=True)
+        clear_button = st.button("🗑️ 清空结果", width='stretch')
 
     # 处理清空
     if clear_button:
@@ -629,7 +629,7 @@ def main():
             horizontal=True
         )
         
-        if st.button("📥 导出数据", use_container_width=True):
+        if st.button("📥 导出数据", width='stretch'):
             try:
                 if export_format == "CSV":
                     csv_data = st.session_state.df.to_csv(index=False)
