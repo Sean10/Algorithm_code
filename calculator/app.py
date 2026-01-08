@@ -499,13 +499,13 @@ def main():
     
     # 计算按钮
     col1, col2, col3 = st.columns([1, 1, 2])
-    
+
     with col1:
         calc_button = st.button("🔢 计算", type="primary", use_container_width=True)
-    
+
     with col2:
         clear_button = st.button("🗑️ 清空结果", use_container_width=True)
-    
+
     # 处理清空
     if clear_button:
         output_formulas = calculator.get_output_formulas()
@@ -519,6 +519,50 @@ def main():
     
     # 执行计算
     if calc_button or auto_calc:
+        # 显示模态遮罩层阻止用户操作
+        modal_placeholder = st.empty()
+        modal_placeholder.markdown("""
+        <div id="calc-modal" style="
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 999999;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            backdrop-filter: blur(4px);
+        ">
+            <div style="
+                background: white;
+                padding: 40px 60px;
+                border-radius: 16px;
+                text-align: center;
+                box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            ">
+                <div style="
+                    width: 50px;
+                    height: 50px;
+                    border: 4px solid #f3f3f3;
+                    border-top: 4px solid #667eea;
+                    border-radius: 50%;
+                    animation: spin 1s linear infinite;
+                    margin: 0 auto 20px;
+                "></div>
+                <h3 style="margin: 0; color: #333; font-weight: 600;">正在计算中...</h3>
+                <p style="margin: 10px 0 0; color: #666; font-size: 14px;">请稍候，计算完成后将自动更新</p>
+            </div>
+        </div>
+        <style>
+            @keyframes spin {
+                0% { transform: rotate(0deg); }
+                100% { transform: rotate(360deg); }
+            }
+        </style>
+        """, unsafe_allow_html=True)
+        
         var_to_col = calculator.get_variable_to_column_map()
         result_df = edited_df.copy()
         
@@ -537,6 +581,9 @@ def main():
                             result_df.at[idx, col_name] = formatted
         
         st.session_state.df = result_df
+        
+        # 清除模态遮罩
+        modal_placeholder.empty()
         
         if calc_button:
             st.rerun()
