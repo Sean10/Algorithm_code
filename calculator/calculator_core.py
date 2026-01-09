@@ -25,7 +25,8 @@ def setup_logging(name='StorageCalculator', level=logging.INFO):
         logger.addHandler(handler)
     return logger
 
-logger = setup_logging()
+# 默认使用 INFO 级别，确保能看到详细的计算过程日志
+logger = setup_logging(level=logging.INFO)
 
 
 class UnitConverter:
@@ -149,11 +150,11 @@ class UnitConverter:
 
     @classmethod
     def format_value(cls, value, target_unit=None, use_binary=True):
-        """格式化数值（将字节转换为目标单位显示）
+        """格式化数值，将数值转换为人类可读的单位显示
         
         Args:
-            value: 数值（字节）
-            target_unit: 目标单位（如 TB, TiB, GB 等）
+            value: 数值（对于容量类单位，假设是字节数；对于特殊单位如%，是原始比例值）
+            target_unit: 目标单位（如 TB, TiB, GB, MiB/s 等）
             use_binary: 自动选择单位时是否使用二进制单位
         """
         if value is None:
@@ -164,19 +165,20 @@ class UnitConverter:
         except (ValueError, TypeError):
             return str(value)
 
-        # 处理特殊单位
+        # 优先处理用户明确指定的单位
         if target_unit:
+            # 检查是否是特殊单位
             if target_unit in cls.SPECIAL_UNITS:
                 return cls.SPECIAL_UNITS[target_unit]['format'](value)
 
-            # 解析目标单位，获取转换因子
+            # 尝试解析标准单位
             unit_info, factor, is_binary = cls._parse_unit_prefix(target_unit)
 
             # 如果无法识别单位，直接附加原单位
-            if unit_info is None or factor == 1:
+            if unit_info is None:
                 return f"{value:.2f} {target_unit}"
-
-            # 将字节转换为目标单位
+            
+            # 标准单位转换（从字节转换到目标单位）
             converted_value = value / factor
             return f"{converted_value:.2f} {unit_info}"
 
@@ -513,9 +515,14 @@ class StorageCalculator:
             column_map = self.get_column_to_variable_map()
 
         try:
+            logger.info("=" * 80)
+            logger.info("开始新的计算过程")
+            logger.info("=" * 80)
+
             known_values = {}
 
             # 只处理输入变量，不处理输出公式列
+            logger.info("\n【步骤1: 读取输入数据】")
             for var_name, var_info in self.variables.items():
                 if var_info.get('can_be_input', False):
                     # 获取该变量的显示名
@@ -528,17 +535,25 @@ class StorageCalculator:
                         parsed_value = self.unit_converter.parse_value(value)
                         if parsed_value is not None:
                             known_values[var_name] = float(parsed_value)
-                            logger.debug(f"从输入列读取: {var_name} = {parsed_value} (原始值: {value})")
-            
+                            logger.info(f"  从输入列读取: {var_name} = {parsed_value} (原始值: {value})")
+
             # 使用默认值填充
+            logger.info("\n【步骤2: 应用默认值】")
             for var_name in self.variables:
                 if var_name not in known_values and var_name in self._calculated_values:
                     known_values[var_name] = self._calculated_values[var_name]
-            
+                    logger.info(f"  使用默认值: {var_name} = {self._calculated_values[var_name]}")
+
             if not known_values:
+                logger.warning("没有有效的已知值，跳过计算")
                 return None
-            
+
+            logger.info(f"\n【已知值汇总】")
+            for var, val in known_values.items():
+                logger.info(f"  {var} = {val}")
+
             # 迭代求解（与原calculate方法相同）
+            logger.info("\n【步骤3: 构建方程依赖关系】")
             equation_deps = {}
             for name, formula_data in self.formulas.items():
                 if name not in known_values:
@@ -547,35 +562,78 @@ class StorageCalculator:
                         'variables': set(formula_data['variables']),
                         'solved': False
                     }
-            
+                    logger.info(f"  方程 {name} 依赖变量: {formula_data['variables']}")
+
             results = known_values.copy()
-            
+
+            logger.info("\n【步骤4: 迭代求解方程】")
+            iteration = 0
             while True:
+                iteration += 1
+                logger.info(f"\n  --- 第 {iteration} 轮迭代 ---")
                 made_progress = False
+
                 for name, eq_data in equation_deps.items():
                     if eq_data['solved']:
                         continue
-                    
+
                     if all(var in results for var in eq_data['variables']):
                         try:
                             eq = eq_data['equation']
+                            logger.info(f"\n  求解方程: {name}")
+                            logger.info(f"    原始方程: {eq}")
+
+                            # 打印代入步骤
+                            logger.info(f"    代入步骤:")
                             subs_dict = {Symbol(var): results[var] for var in eq_data['variables']}
-                            solution = solve(eq.subs(subs_dict))
+                            for var, val in subs_dict.items():
+                                logger.info(f"      {var} = {val}")
+
+                            # 打印代入后的表达式
+                            substituted_eq = eq.subs(subs_dict)
+                            logger.info(f"    代入后的方程: {substituted_eq}")
+
+                            # 求解
+                            solution = solve(substituted_eq)
                             if solution:
-                                results[name] = float(solution[0])
+                                float_value = float(solution[0])
+                                results[name] = float_value
                                 eq_data['solved'] = True
                                 made_progress = True
+                                logger.info(f"    ✓ 求解成功: {name} = {float_value}")
+                            else:
+                                logger.warning(f"    ✗ 无解: {name}")
                         except Exception as e:
-                            logger.warning(f"求解方程 {name} 失败: {str(e)}")
-                
+                            logger.warning(f"    ✗ 求解方程 {name} 失败: {str(e)}")
+                    else:
+                        missing_vars = [var for var in eq_data['variables'] if var not in results]
+                        logger.debug(f"  方程 {name} 缺少变量: {missing_vars}，暂时跳过")
+
                 if not made_progress:
+                    logger.info(f"\n  第 {iteration} 轮迭代无进展，终止求解")
                     break
-            
+
+            # 报告未能求解的方程
+            unsolved = [name for name, data in equation_deps.items() if not data['solved']]
+            if unsolved:
+                logger.warning(f"\n【警告】以下方程无法求解: {unsolved}")
+
+            logger.info("\n【步骤5: 计算结果汇总】")
+            for name in self.formulas.keys():
+                if name in results:
+                    logger.info(f"  {name} = {results[name]}")
+
+            logger.info("\n" + "=" * 80)
+            logger.info("计算过程结束")
+            logger.info("=" * 80 + "\n")
+
             self._calculated_values.update(results)
             return results
-        
+
         except Exception as e:
             logger.error(f"计算过程出错: {str(e)}")
+            import traceback
+            logger.error(traceback.format_exc())
             return None
 
     def get_all_known_columns(self):
