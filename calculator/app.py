@@ -128,7 +128,6 @@ st.markdown("""
     /* 卡片样式 */
     .stDataFrame {
         border-radius: 12px;
-        overflow: hidden;
     }
     
     /* 侧边栏样式 */
