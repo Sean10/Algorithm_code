@@ -382,6 +382,14 @@ class StorageCalculator:
             return None
 
         try:
+            # 【关键修复】清除之前行的计算结果，只保留全局默认值
+            config_defaults = self.config.get('global', {}).get('defaults', {})
+            preserved_defaults = {}
+            for var_name in config_defaults:
+                if var_name in self._calculated_values:
+                    preserved_defaults[var_name] = self._calculated_values[var_name]
+            self._calculated_values = preserved_defaults.copy()
+
             known_values = {}
 
             # 处理输入数据
@@ -389,13 +397,13 @@ class StorageCalculator:
                 if var_info['can_be_input']:
                     display_name = var_info['display_name']
                     
-                    # 尝试通过变量名或显示名获取值
+                    # 尝试通过变量名或显示名获取值（检查空值）
                     value = None
-                    if var_name in input_data:
+                    if var_name in input_data and input_data[var_name] not in (None, '', 'nan'):
                         value = input_data[var_name]
-                    elif display_name in input_data:
+                    elif display_name in input_data and input_data[display_name] not in (None, '', 'nan'):
                         value = input_data[display_name]
-                    
+
                     if value is not None:
                         parsed_value = self.unit_converter.parse_value(value)
                         if parsed_value is not None:
@@ -498,12 +506,13 @@ class StorageCalculator:
         
         return var_map
 
-    def calculate_with_columns(self, row_data, column_map=None):
+    def calculate_with_columns(self, row_data, column_map=None, row_index=None):
         """根据列名进行计算，自动识别公式
 
         Args:
             row_data: 行数据字典，键为列名（显示名）
             column_map: 列名到变量名的映射，如果为None则自动生成
+            row_index: data_editor中的行索引（用于日志记录）
 
         Returns:
             计算结果字典，键为变量名
@@ -515,27 +524,44 @@ class StorageCalculator:
             column_map = self.get_column_to_variable_map()
 
         try:
+            row_info = f" (data_editor 第 {row_index} 行)" if row_index is not None else ""
             logger.info("=" * 80)
-            logger.info("开始新的计算过程")
+            logger.info(f"开始新的计算过程{row_info}")
             logger.info("=" * 80)
+
+            # 【关键修复】清除之前行的计算结果，只保留全局默认值
+            # 获取配置中定义的默认值
+            config_defaults = self.config.get('global', {}).get('defaults', {})
+            # 只保留默认值，清除上一行的计算结果
+            preserved_defaults = {}
+            for var_name in config_defaults:
+                if var_name in self._calculated_values:
+                    preserved_defaults[var_name] = self._calculated_values[var_name]
+            # 重置 _calculated_values 为仅包含默认值
+            self._calculated_values = preserved_defaults.copy()
+            logger.debug(f"已重置计算状态，保留的默认值: {list(preserved_defaults.keys())}")
 
             known_values = {}
 
             # 只处理输入变量，不处理输出公式列
-            logger.info("\n【步骤1: 读取输入数据】")
+            logger.info(f"\n【步骤1: 读取输入数据{row_info}】")
             for var_name, var_info in self.variables.items():
                 if var_info.get('can_be_input', False):
                     # 获取该变量的显示名
                     display_name = var_info.get('display_name', var_name)
 
-                    # 尝试从row_data中获取值
-                    value = row_data.get(display_name) or row_data.get(var_name)
+                    # 尝试从row_data中获取值（显示名优先，然后是变量名）
+                    value = None
+                    if display_name in row_data and row_data[display_name] not in (None, '', 'nan'):
+                        value = row_data[display_name]
+                    elif var_name in row_data and row_data[var_name] not in (None, '', 'nan'):
+                        value = row_data[var_name]
 
                     if value is not None and not (isinstance(value, str) and not value.strip()):
                         parsed_value = self.unit_converter.parse_value(value)
                         if parsed_value is not None:
                             known_values[var_name] = float(parsed_value)
-                            logger.info(f"  从输入列读取: {var_name} = {parsed_value} (原始值: {value})")
+                            logger.info(f"  从输入列读取{row_info}: {var_name} = {parsed_value} (原始值: {value})")
 
             # 使用默认值填充
             logger.info("\n【步骤2: 应用默认值】")
