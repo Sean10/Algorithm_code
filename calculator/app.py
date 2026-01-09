@@ -23,41 +23,68 @@ FORMULA_DIR = os.path.join(SCRIPT_DIR, "formulas")
 
 class FormulaWatcher(FileSystemEventHandler):
     """配置文件监听器"""
-    
+
     def __init__(self, formula_dir):
         self.formula_dir = os.path.abspath(formula_dir)
-        self.last_modified = 0
-        
+        self.last_modified = {}  # 改为字典，分别记录每个文件的修改时间
+
     def on_modified(self, event):
         """检测到文件修改时触发"""
         # 只监听 yaml 文件的修改
-        if event.src_path.endswith('.yaml') and os.path.dirname(event.src_path) == self.formula_dir:
-            current_time = time.time()
-            # 防抖：1秒内只触发一次
-            if current_time - self.last_modified < 1:
+        if not event.src_path.endswith('.yaml'):
+            return
+
+        if os.path.dirname(event.src_path) != self.formula_dir:
+            return
+
+        current_time = time.time()
+        file_path = event.src_path
+
+        # 防抖：1秒内同一文件只触发一次
+        if file_path in self.last_modified:
+            if current_time - self.last_modified[file_path] < 1:
                 return
-            self.last_modified = current_time
-            
-            # 清除缓存，触发重新加载
-            st.cache_resource.clear()
-            # 设置重载标记
-            if 'config_reload_trigger' not in st.session_state:
-                st.session_state.config_reload_trigger = 0
-            st.session_state.config_reload_trigger += 1
+
+        self.last_modified[file_path] = current_time
+
+        # 清除缓存，触发重新加载
+        st.cache_resource.clear()
+        # 设置重载标记
+        if 'config_reload_trigger' not in st.session_state:
+            st.session_state.config_reload_trigger = 0
+        st.session_state.config_reload_trigger += 1
 
 
 def start_formula_watcher():
     """启动配置文件监听器"""
-    if 'formula_observer' not in st.session_state:
-        try:
-            event_handler = FormulaWatcher(FORMULA_DIR)
-            observer = Observer()
-            observer.schedule(event_handler, FORMULA_DIR, recursive=False)
-            observer.start()
-            st.session_state.formula_observer = observer
-            st.session_state.formula_watcher = event_handler
-        except Exception as e:
+    try:
+        # 如果已存在，则跳过
+        if 'formula_observer' in st.session_state:
+            return
+
+        event_handler = FormulaWatcher(FORMULA_DIR)
+        observer = Observer()
+        observer.schedule(event_handler, FORMULA_DIR, recursive=False)
+        observer.start()
+        st.session_state.formula_observer = observer
+        st.session_state.formula_watcher = event_handler
+    except Exception as e:
+        # 如果监听器已存在，静默忽略
+        if "already scheduled" not in str(e):
             st.error(f"启动配置文件监听失败: {str(e)}")
+
+
+def stop_formula_watcher():
+    """停止配置文件监听器"""
+    if 'formula_observer' in st.session_state:
+        try:
+            st.session_state.formula_observer.stop()
+            st.session_state.formula_observer.join(timeout=1)
+            del st.session_state.formula_observer
+            if 'formula_watcher' in st.session_state:
+                del st.session_state.formula_watcher
+        except Exception as e:
+            pass  # 静默忽略停止时的错误
 
 # 页面配置
 st.set_page_config(
@@ -283,10 +310,18 @@ def render_sidebar(calculator):
     
     # 操作按钮
     st.sidebar.markdown("### 操作")
-    if st.sidebar.button("🔄 重新加载配置", width='stretch'):
-        reload_calculator()
-        st.rerun()
-    
+    col1, col2 = st.sidebar.columns(2)
+
+    with col1:
+        if st.button("🔄 重新加载配置", key="reload_config", use_container_width=True):
+            reload_calculator()
+            st.rerun()
+
+    with col2:
+        if st.button("⏸️ 停止监听", key="stop_watcher", use_container_width=True):
+            stop_formula_watcher()
+            st.success("已停止配置文件监听")
+
     return modified_defaults
 
 
