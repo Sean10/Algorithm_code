@@ -515,10 +515,12 @@ class StorageCalculator:
             row_index: data_editor中的行索引（用于日志记录）
 
         Returns:
-            计算结果字典，键为变量名
+            tuple: (results, unsolved_outputs)
+            - results: 计算结果字典，键为变量名
+            - unsolved_outputs: 无法求解的输出公式列表
         """
         if not row_data:
-            return None
+            return None, []
 
         if column_map is None:
             column_map = self.get_column_to_variable_map()
@@ -566,13 +568,30 @@ class StorageCalculator:
             # 使用默认值填充
             logger.info("\n【步骤2: 应用默认值】")
             for var_name in self.variables:
+                # 对于输入变量，如果当前行数据为空，则不应用之前的计算值
+                var_info = self.variables[var_name]
+                if var_info.get('can_be_input', False):
+                    display_name = var_info.get('display_name', var_name)
+                    # 检查当前行数据中该列是否为空
+                    row_value = None
+                    if display_name in row_data:
+                        row_value = row_data[display_name]
+                    elif var_name in row_data:
+                        row_value = row_data[var_name]
+                    # 如果当前行为空（None, '', 'nan'），则跳过使用之前的值
+                    if row_value in (None, '', 'nan'):
+                        logger.debug(f"  跳过输入变量 {var_name}，当前行为空")
+                        continue
+
                 if var_name not in known_values and var_name in self._calculated_values:
                     known_values[var_name] = self._calculated_values[var_name]
                     logger.info(f"  使用默认值: {var_name} = {self._calculated_values[var_name]}")
 
             if not known_values:
                 logger.warning("没有有效的已知值，跳过计算")
-                return None
+                # 所有输出公式都视为无法求解
+                all_outputs = list(self.formulas.keys())
+                return None, all_outputs
 
             logger.info(f"\n【已知值汇总】")
             for var, val in known_values.items():
@@ -654,13 +673,13 @@ class StorageCalculator:
             logger.info("=" * 80 + "\n")
 
             self._calculated_values.update(results)
-            return results
+            return results, unsolved
 
         except Exception as e:
             logger.error(f"计算过程出错: {str(e)}")
             import traceback
             logger.error(traceback.format_exc())
-            return None
+            return None, []
 
     def get_all_known_columns(self):
         """获取所有已知的列名（变量和公式的显示名）"""

@@ -403,17 +403,29 @@ def render_column_rename(current_columns):
     return None
 
 
-def calculate_row(calculator, row_data, modified_defaults):
-    """计算单行数据"""
+def calculate_row(calculator, row_data, modified_defaults, row_index=None):
+    """计算单行数据
+
+    Args:
+        calculator: 计算器实例
+        row_data: 行数据
+        modified_defaults: 修改后的默认值
+        row_index: data_editor中的行索引（用于日志记录）
+
+    Returns:
+        tuple: (results, unsolved_outputs)
+        - results: 计算结果字典
+        - unsolved_outputs: 无法求解的输出公式列表
+    """
     # 合并默认值和行数据
     input_data = modified_defaults.copy()
     for key, value in row_data.items():
         if pd.notna(value) and value != '' and value != 'nan':
             input_data[key] = value
-    
+
     # 使用新的列名感知计算方法
-    results = calculator.calculate_with_columns(input_data)
-    return results
+    results, unsolved_outputs = calculator.calculate_with_columns(input_data, row_index=row_index)
+    return results, unsolved_outputs
 
 
 def create_default_dataframe(calculator, modified_defaults):
@@ -606,7 +618,13 @@ def main():
     
     # 处理同步
     if sync_button:
-        st.session_state.df = edited_df
+        # 清理数据：确保空值保持为空字符串，防止数据传播
+        cleaned_df = edited_df.copy()
+        for col in cleaned_df.columns:
+            cleaned_df[col] = cleaned_df[col].apply(
+                lambda x: '' if pd.isna(x) or str(x).strip() == '' or str(x) == 'nan' else str(x)
+            )
+        st.session_state.df = cleaned_df
         st.success("编辑已同步")
         st.rerun()
     
@@ -672,11 +690,11 @@ def main():
         var_to_col = calculator.get_variable_to_column_map()
         # 使用编辑器中的最新数据进行计算
         result_df = edited_df.copy()
-        
+
         for idx, row in result_df.iterrows():
             row_data = row.to_dict()
-            results = calculate_row(calculator, row_data, modified_defaults)
-            
+            results, unsolved_outputs = calculate_row(calculator, row_data, modified_defaults, row_index=idx)
+
             if results:
                 # 更新结果列
                 for var_name, value in results.items():
@@ -686,6 +704,12 @@ def main():
                         if var_name in calculator.formulas:
                             formatted = calculator.format_result(var_name, value)
                             result_df.at[idx, col_name] = formatted
+
+            # 将无法求解的输出列置空
+            for var_name in unsolved_outputs:
+                col_name = var_to_col.get(var_name, var_name)
+                if col_name in result_df.columns:
+                    result_df.at[idx, col_name] = ''
         
         st.session_state.df = result_df
         
