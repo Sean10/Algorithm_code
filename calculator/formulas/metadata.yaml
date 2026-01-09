@@ -104,7 +104,7 @@ formulas:
   origin_hdd_db_size:
     expression: "origin_hdd_db_size = hdd_db_object_count * origin_hdd_db_metadata_size"
     excel_column: "优化前HDD DB大小"
-
+    unit: "TiB"
   # 优化前HDD DB大小占比
   origin_hdd_db_size_ratio:
     expression: "origin_hdd_db_size_ratio = origin_hdd_db_size / origin_need_nvme_capacity"
@@ -114,10 +114,12 @@ formulas:
   wal_size:
     expression: "wal_size = wal_partition_size * hdd_count"
     excel_column: "WAL大小"
+    unit: "TiB"
 
   origin_assemble_db_size:
     expression: "assemble_db_size =  object_count * assemble_metadata_size * metadata_replica * assemble_scale_ratio"
     excel_column: "聚合池原始大小"
+    unit: "TiB"
 
   origin_assemble_db_size_ratio:
     expression: "origin_assemble_db_size_ratio = origin_assemble_db_size / origin_need_nvme_capacity"
@@ -129,14 +131,16 @@ formulas:
   archive_assemble_object_ratio:
     expression: "archive_assemble_object_ratio = (object_count - assemble_metadata_object_limit*nvme_count) / object_count"
     excel_column: "归档元数据数量占比"
+    unit: "%"
 
   archive_hdd_used_ratio:
     expression: "archive_hdd_used_ratio = (avail_hdd_capacity - hdd_db_for_nvme)/avail_hdd_capacity"
     excel_column: "归档HDD对象空间使用率"
-
+    unit: "%"
   origin_metadata_db_size:
     expression: "origin_metadata_db_size = object_count * metadata_size * metadata_replica * metadata_scale_ratio"
     excel_column: "优化前元数据池大小"
+    unit: "TiB"
 
 
 
@@ -160,15 +164,16 @@ formulas:
   hdd_pool_massemble_db_size:
     expression: "hdd_pool_massemble_db_size = rocksdb_compression_ratio * (object_count - assemble_metadata_object_limit) * assemble_metadata_size * metadata_replica"
     excel_column: "HDD池上对象聚合池大小"
+    unit: "TiB"
 
   hdd_pool_metadata_db_size:
     expression: "hdd_pool_metadata_db_size = rocksdb_compression_ratio * (object_count - assemble_metadata_object_limit) * metadata_size * metadata_replica"
     excel_column: "HDD池上对象元数据池大小"
-
+    unit: "TiB"
   hdd_db_for_nvme:
     expression: "hdd_db_for_nvme = hdd_pool_massemble_db_size + hdd_pool_metadata_db_size"
     excel_column: "HDD池提供给nvme用的slow空间"
-
+    unit: "TiB"
   # 数据池的得盘率因元数据占用带来下降
   hdd_pool_disk_utilization:
     expression: "hdd_pool_disk_utilization = (total_hdd_capacity - hdd_pool_massemble_db_size -hdd_pool_metadata_db_size)/ total_hdd_capacity * object_size / (assemble_metadata_size + object_size)"
@@ -179,7 +184,7 @@ formulas:
   nvme_reserve_capacity:
     expression: "nvme_reserve_capacity = total_nvme - metadata_db_size - hdd_db_size - nvme_assemble_object_reserve  * nvme_count"
     excel_column: "NVMe剩余供聚合池用空间"
-
+    unit: "TiB"
   # 含rocksdb压缩
   nvme_reserve_object_count:
     expression: "nvme_reserve_object_count = (nvme_reserve_capacity - object_count * assemble_simplify_metadata_size * metadata_replica) / (assemble_metadata_size * metadata_replica*rocksdb_compression_ratio + assemble_simplify_metadata_size * metadata_replica)"
@@ -191,6 +196,7 @@ formulas:
   hdd_db_size:
     expression: "hdd_db_size = hdd_db_object_count * hdd_db_metadata_size * rocksdb_compression_ratio"
     excel_column: "HDD DB大小"
+    unit: "TiB"
 
   hdd_db_size_ratio:
     expression: "hdd_db_size_ratio = hdd_db_size / need_nvme_capacity"
@@ -200,6 +206,7 @@ formulas:
   assemble_db_size:
     expression: "assemble_db_size = rocksdb_compression_ratio * assemble_metadata_object_limit * assemble_metadata_size * tune_metadata_replica * assemble_scale_ratio + (object_count - assemble_metadata_object_limit) * assemble_simplify_metadata_size * tune_metadata_replica * assemble_scale_ratio"
     excel_column: "聚合池大小"
+    unit: "TiB"
 
   assemble_db_size_ratio:
     expression: "assemble_db_size_ratio = assemble_db_size / need_nvme_capacity"
@@ -209,6 +216,7 @@ formulas:
   metadata_db_size:
     expression: "metadata_db_size = rocksdb_compression_ratio * assemble_metadata_object_limit * metadata_size * tune_metadata_replica * metadata_scale_ratio + (object_count - assemble_metadata_object_limit) * metadata_simplify_size * tune_metadata_replica * metadata_scale_ratio"
     excel_column: "元数据池大小"
+    unit: "TiB"
 
   metadata_db_size_ratio:
     expression: "metadata_db_size_ratio = metadata_db_size / need_nvme_capacity"
@@ -218,7 +226,7 @@ formulas:
   need_nvme_capacity:
     expression: "need_nvme_capacity = hdd_db_size + assemble_db_size + metadata_db_size + wal_size"
     excel_column: "所需NVMe容量"
-
+    unit: "TB"
   nvme_tune_ratio:
     expression: "nvme_tune_ratio = (origin_need_nvme_capacity - need_nvme_capacity) / origin_need_nvme_capacity"
     excel_column: "NVMe调优比例"

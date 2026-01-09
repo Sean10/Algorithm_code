@@ -46,8 +46,10 @@ formulas:
   avail_hdd_capacity:
     expression: "avail_hdd_capacity = total_hdd_capacity / ec_ratio * scale_ratio"
     excel_column: "HDD实际可用容量"
+    unit: "TiB"
 
   #
   smr_cmr_capacity:
     expression: "smr_cmr_capacity = hdd_capacity * 0.01 * hdd_count"
     excel_column: "SMR可供使用的CMR裸容量"
+    unit: "TiB"
