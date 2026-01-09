@@ -498,41 +498,37 @@ class StorageCalculator:
 
     def calculate_with_columns(self, row_data, column_map=None):
         """根据列名进行计算，自动识别公式
-        
+
         Args:
             row_data: 行数据字典，键为列名（显示名）
             column_map: 列名到变量名的映射，如果为None则自动生成
-            
+
         Returns:
             计算结果字典，键为变量名
         """
         if not row_data:
             return None
-        
+
         if column_map is None:
             column_map = self.get_column_to_variable_map()
-        
+
         try:
             known_values = {}
-            
-            # 将列名转换为变量名，并解析值
-            for col_name, value in row_data.items():
-                if value is None or (isinstance(value, str) and not value.strip()):
-                    continue
-                
-                # 查找对应的变量名
-                var_name = column_map.get(col_name)
-                if var_name is None:
-                    # 尝试模糊匹配
-                    for key, mapped_var in column_map.items():
-                        if key.lower() == col_name.lower():
-                            var_name = mapped_var
-                            break
-                
-                if var_name:
-                    parsed_value = self.unit_converter.parse_value(value)
-                    if parsed_value is not None:
-                        known_values[var_name] = float(parsed_value)
+
+            # 只处理输入变量，不处理输出公式列
+            for var_name, var_info in self.variables.items():
+                if var_info.get('can_be_input', False):
+                    # 获取该变量的显示名
+                    display_name = var_info.get('display_name', var_name)
+
+                    # 尝试从row_data中获取值
+                    value = row_data.get(display_name) or row_data.get(var_name)
+
+                    if value is not None and not (isinstance(value, str) and not value.strip()):
+                        parsed_value = self.unit_converter.parse_value(value)
+                        if parsed_value is not None:
+                            known_values[var_name] = float(parsed_value)
+                            logger.debug(f"从输入列读取: {var_name} = {parsed_value} (原始值: {value})")
             
             # 使用默认值填充
             for var_name in self.variables:
