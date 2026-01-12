@@ -58,25 +58,49 @@ formulas:
 
 ## 使用方式
 
-### 1. 命令行直接计算模式
+### 1. Web界面模式（推荐）
+
+启动Streamlit Web应用，提供可视化交互界面：
+
+```bash
+uv run streamlit run app.py --server.headless true --server.port 8501
+```
+
+或使用默认配置：
+
+```bash
+streamlit run app.py
+```
+
+访问 `http://localhost:8501` 即可使用。
+
+**Web界面特性：**
+- 📊 数据表格可视化编辑
+- 💾 数据持久化（自动保存/加载）
+- ✏️ 列管理（添加、删除、重命名）
+- 🔄 实时公式配置监听
+- 📁 支持CSV/Excel导入导出
+- 📈 计算结果可视化图表
+
+### 2. 命令行直接计算模式
 
 ```bash
 python storage_calculator.py
 ```
 
-### 2. Excel一次性计算模式
+### 3. Excel一次性计算模式
 
 ```bash
 python storage_calculator.py --excel "数据表.xlsm"
 ```
 
-### 3. Excel实时监听模式
+### 4. Excel实时监听模式
 
 ```bash
 python storage_calculator.py --watch "数据表.xlsm"
 ```
 
-### 4. Excel VBA集成模式
+### 5. Excel VBA集成模式
 
 在Excel中通过VBA调用计算功能：
 
