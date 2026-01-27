@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   claude-code:
     build:
@@ -8,12 +6,18 @@ services:
       args:
         TZ: ${TZ:-Asia/Shanghai}
         CLAUDE_CODE_VERSION: ${CLAUDE_CODE_VERSION:-latest}
-    container_name: claude-code-container
+    image: claude-code-local:latest
+    pull_policy: never
     hostname: claude-code
 
     # 无头模式配置
     stdin_open: true
     tty: true
+
+    # 权限配置 - 防火墙脚本需要
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
 
     # 环境变量
     environment:
@@ -42,7 +46,7 @@ services:
     command: >
       bash -c "
         # 为claude命令创建别名，自动添加 --dangerously-skip-permissions
-        echo 'alias claude=\"claude --dangerously-skip-permissions\"' >> /home/node/.zshrc &&
+        echo 'alias claude=\"claude --dangerously-skip-permissions\"' >> ~/.zshrc &&
         # 启动 zsh shell
         exec zsh
       "
@@ -54,9 +58,6 @@ services:
       timeout: 10s
       retries: 3
       start_period: 10s
-
-    # 重启策略
-    restart: unless-stopped
 
     # 资源限制
     # deploy:
