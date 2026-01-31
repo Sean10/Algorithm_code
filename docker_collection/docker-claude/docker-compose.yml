@@ -32,9 +32,11 @@ services:
     volumes:
       # 挂载当前工作目录到容器的 /workspace
       - .:/workspace:rw
+      - ${HOME}/.claude.json:/home/node/.claude.json:rw
 
       # 直接挂载主机的 ~/.claude 目录，实现双向同步
       - ${HOME}/.claude:/home/node/.claude:rw
+      - ${HOME}/.agents:/home/node/.agents:rw
 
       # 挂载 bash 历史记录
       - claude-bash-history:/commandhistory

@@ -16,24 +16,24 @@ RUN apk add --no-cache \
     nano \
     jq \
     fzf \
-    gh \
     iptables \
     ipset \
-    dnsutils \
     wget \
     sudo \
     && rm -rf /var/cache/apk/*
 
-# Install git-delta for code review
-RUN wget -q "https://github.com/dandavison/delta/releases/download/${GIT_DELTA_VERSION}/git-delta_${GIT_DELTA_VERSION}_amd64.deb" && \
-    dpkg -i "git-delta_${GIT_DELTA_VERSION}_amd64.deb" && \
-    rm "git-delta_${GIT_DELTA_VERSION}_amd64.deb"
+# Install git-delta for code review (use portable binary for Alpine)
+RUN wget -q "https://github.com/dandavison/delta/releases/latest/download/delta-${GIT_DELTA_VERSION}-x86_64-unknown-linux-musl.tar.gz" && \
+    tar -xzf "delta-${GIT_DELTA_VERSION}-x86_64-unknown-linux-musl.tar.gz" && \
+    mv delta-0.18.2-x86_64-unknown-linux-musl/delta /usr/local/bin/ && \
+    chmod +x /usr/local/bin/delta && \
+    rm "delta-${GIT_DELTA_VERSION}-x86_64-unknown-linux-musl.tar.gz"
 
 # Create node group and user (node:alpine already has node user, check and use it)
 RUN (id node 2>/dev/null || (addgroup -g 1000 node && adduser -u 1000 -G node -s /bin/zsh -D node))
 
 # Install Claude Code CLI globally using npm
-RUN npm install -g @anthropic-ai/claude-code@latest
+RUN npm install -g @anthropic-ai/claude-code@2.1.17
 
 # Set working directory
 WORKDIR /workspace
@@ -71,8 +71,6 @@ VOLUME ["/home/node/.claude", "/workspace", "/home/node/.ssh"]
 ENV NODE_ENV=production
 ENV CLAUDE_CONFIG_DIR=/home/node/.claude
 ENV TZ=Asia/Shanghai
-ENV EDITOR=nano
-ENV VISUAL=nano
 
 # Labels for metadata
 LABEL maintainer="claude-code-docker-setup"
