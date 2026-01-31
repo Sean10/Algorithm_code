@@ -20,6 +20,8 @@ services:
       - NET_RAW
 
     # 环境变量
+    env_file:
+      - .env
     environment:
       - NODE_OPTIONS=--max-old-space-size=4096
       - CLAUDE_CONFIG_DIR=/home/node/.claude
@@ -28,48 +30,23 @@ services:
       - TZ=${TZ:-Asia/Shanghai}
       - CLAUDE_CODE_VERSION=${CLAUDE_CODE_VERSION:-latest}
 
-    # 挂载配置
+    # 挂载配置 - 启动时由 entrypoint 复制到容器内
     volumes:
-      # 挂载当前工作目录到容器的 /workspace
       - .:/workspace:rw
-      - ${HOME}/.claude.json:/home/node/.claude.json:rw
-
-      # 直接挂载主机的 ~/.claude 目录，实现双向同步
-      - ${HOME}/.claude:/home/node/.claude:rw
-      - ${HOME}/.agents:/home/node/.agents:rw
-
-      # 挂载 bash 历史记录
       - claude-bash-history:/commandhistory
+      - ${HOME}/.claude:/host-claude:ro
+      - ${HOME}/.agents:/host-agents:ro
+      - ${HOME}/.ssh:/host-ssh:ro
 
-      # 挂载 SSH 目录
-      - ${HOME}/.ssh:/home/node/.ssh:rw
+    # 启动命令 - 已在 Dockerfile 的 entrypoint 中处理
 
-    # 启动命令 - 预置 --dangerously-skip-permissions 参数
-    command: >
-      bash -c "
-        # 为claude命令创建别名，自动添加 --dangerously-skip-permissions
-        echo 'alias claude=\"claude --dangerously-skip-permissions\"' >> ~/.zshrc &&
-        # 启动 zsh shell
-        exec zsh
-      "
-
-    # 健康检查 - 使用简单的进程检查
+    # 健康检查
     healthcheck:
       test: ["CMD-SHELL", "exit 0"]
       interval: 60s
       timeout: 10s
       retries: 3
       start_period: 10s
-
-    # 资源限制
-    # deploy:
-    #   resources:
-    #     limits:
-    #       cpus: '4.0'
-    #       memory: 8G
-    #     reservations:
-    #       cpus: '1.0'
-    #       memory: 2G
 
 # 命名卷定义
 volumes:

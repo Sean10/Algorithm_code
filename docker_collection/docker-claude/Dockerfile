@@ -41,9 +41,10 @@ WORKDIR /workspace
 # Create necessary directories with proper permissions
 RUN chown -R node:node /home/node && \
     mkdir -p /home/node/.claude && \
+    mkdir -p /home/node/.agents && \
     mkdir -p /home/node/.ssh && \
     chmod 755 /home/node/.claude && \
-    chmod 700 /home/node/.ssh
+    chmod 700 /home/node/.ssh && chown -R node:node /home/node
 
 # Configure git for proper operation
 RUN git config --global user.email "claude@docker.local" && \
@@ -58,14 +59,35 @@ RUN sh -c "$(curl -fsSL https://raw.githubusercontent.com/romkatv/zsh-in-docker/
     --skip-oh-my-zsh \
     --plugins git docker docker-compose
 
+# Install rsync for entrypoint script
+RUN apk add --no-cache rsync
+
+# Install sudo for node user (needed for visudo validation)
+RUN apk add --no-cache sudo
+
+# Configure sudo for node user (NOPASSWD)
+RUN mkdir -p /etc/sudoers.d && \
+    echo "node ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/node && \
+    chmod 440 /etc/sudoers.d/node
+
+# Copy and configure entrypoint script
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+
 # Switch to node user for subsequent commands
 USER node
 
 # Set default shell to zsh
 ENV SHELL=/bin/zsh
 
+# Entrypoint for copying host config
+ENTRYPOINT ["/entrypoint.sh"]
+
 # Volume mounts for persistent data
-VOLUME ["/home/node/.claude", "/workspace", "/home/node/.ssh"]
+VOLUME ["/workspace"]
+
+# Default command
+CMD ["zsh"]
 
 # Environment variables
 ENV NODE_ENV=production
@@ -75,6 +97,6 @@ ENV TZ=Asia/Shanghai
 # Labels for metadata
 LABEL maintainer="claude-code-docker-setup"
 LABEL description="Claude Code CLI with all dependencies and zsh-in-docker"
-LABEL version="1.2.0"
+LABEL version="1.3.0"
 LABEL source="built from @anthropic-ai/claude-code npm package"
-LABEL features="zsh-in-docker, git-delta, fzf, gh, iptables, nano-editor, timezone-fix, git-config, claude-code"
+LABEL features="zsh-in-docker, git-delta, fzf, gh, iptables, nano-editor, timezone-fix, git-config, claude-code, entrypoint-config-copy"
