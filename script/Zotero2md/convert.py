@@ -14,6 +14,7 @@ import subprocess
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from pathlib import Path
+from threading import Lock
 
 try:
     from pyzotero import Zotero
@@ -164,8 +165,12 @@ def get_collection_path(zot, collection_key: str) -> str:
         return ""
 
 
-def delete_original_attachment(zot, item_key: str, file_path: str, item_version: int) -> tuple[bool, str]:
-    """删除原始 html 条目和磁盘文件"""
+def delete_original_attachment(zot, item_key: str, file_path: str, item_version: int, content_type: str = 'text/html') -> tuple[bool, str]:
+    """删除原始条目。仅删除 HTML 的源文件和条目；PDF 保留源文件和条目"""
+    # 只处理 HTML，PDF 不删除任何内容
+    if content_type != 'text/html':
+        return True, f"跳过删除（PDF 类型保留）"
+
     file_deleted = False
     try:
         if os.path.exists(file_path):
@@ -174,7 +179,6 @@ def delete_original_attachment(zot, item_key: str, file_path: str, item_version:
     except Exception as e:
         print(f"  [调试] 删除文件失败: {e}")
 
-    # pyzotero 的 @backoff_check 装饰器: 成功返回 True, 失败抛异常
     try:
         zot.delete_item({"key": item_key, "version": item_version})
         msg = f"已删除条目 {item_key}"
@@ -321,18 +325,17 @@ def migrate_attachments(args):
         print("没有需要迁移的附件")
         return
 
-    # 处理每个附件
-    success_count = 0
-    skip_count = 0
-    fail_count = 0
-    delete_count = 0
-    delete_fail_count = 0
+    # 线程安全计数器
+    counters = {'success': 0, 'skip': 0, 'fail': 0, 'delete': 0, 'delete_fail': 0}
+    counter_lock = Lock()
+    print_lock = Lock()
 
     # 初始化远程 API（用于创建 linked_file 和删除操作）
     zot_remote = Zotero(args.zotero_user_id, 'user', args.zotero_api_key)
     print("初始化远程 API 完成\n")
 
-    for att in attachments_to_migrate:
+    def process_single_attachment(att):
+        """处理单个附件的迁移（线程安全）"""
         parent_key = att['parent_key']
         title = att['title']
         collection_path = att['collection_path']
@@ -343,8 +346,6 @@ def migrate_attachments(args):
         source_path = att['source_path']
 
         # 获取源文件路径
-        # linked_file: 直接使用 path 字段的路径
-        # imported_file/imported_url: 根据 collection 和 title 构建
         if link_mode == 'linked_file' and source_path:
             source_file = Path(source_path)
             source_dir = source_file.parent
@@ -353,30 +354,30 @@ def migrate_attachments(args):
                 source_dir = base_path / collection_path
             else:
                 source_dir = base_path
-            # 清理标题中的非法文件名字符
             safe_title = re.sub(r'[<>:"/\\|?*]', '_', title)
             ext = '.html' if content_type == 'text/html' else '.pdf'
             source_file = source_dir / f"{safe_title}{ext}"
 
-        # 构建 md 文件路径（使用后缀避免重名冲突）
+        # 构建 md 文件路径
         md_suffix = att.get('_md_suffix', '')
         md_file = source_dir / f"{source_file.stem}{md_suffix}.md"
 
-        print(f"\n[处理] {title}")
-        print(f"  源文件: {source_file}")
-        print(f"  MD 文件: {md_file}")
+        with print_lock:
+            print(f"\n[处理] {title}")
+            print(f"  源文件: {source_file}")
+            print(f"  MD 文件: {md_file}")
 
         # 检查源文件是否存在
         if not source_file.exists():
-            print(f"  [跳过] 源文件不存在")
-            skip_count += 1
-            continue
+            with print_lock:
+                print(f"  [跳过] 源文件不存在: {title}")
+            with counter_lock:
+                counters['skip'] += 1
+            return
 
-        # 检查是否已存在 md linked_file（需单独请求 /children 接口，item 响应不含子项）
+        # 检查是否已存在 md linked_file
         try:
             children = zot_local.children(parent_key) or []
-
-            # 查找是否已有 md linked_file
             has_md_linked = False
             for child in children:
                 child_data = child.get('data', {})
@@ -389,22 +390,24 @@ def migrate_attachments(args):
                             has_md_linked = True
                             break
         except Exception as e:
-            print(f"  [警告] 检查现有附件失败: {e}")
+            with print_lock:
+                print(f"  [警告] 检查现有附件失败: {e}")
             has_md_linked = False
 
         if has_md_linked:
-            print(f"  [跳过] 已存在 md linked_file")
-            skip_count += 1
-            continue
+            with print_lock:
+                print(f"  [跳过] 已存在 md linked_file: {title}")
+            with counter_lock:
+                counters['skip'] += 1
+            return
 
         # 转换文件
         if args.dry_run:
-            print(f"  [DRY-RUN] 转换: {source_file} -> {md_file}")
-            print(f"  [DRY-RUN] 创建 linked_file: {md_file}")
+            with print_lock:
+                print(f"  [DRY-RUN] 转换: {source_file} -> {md_file}")
+                print(f"  [DRY-RUN] 创建 linked_file: {md_file}")
         else:
-            # 使用现有的 convert_file 函数
             try:
-                # 直接调用 markitdown
                 with open(source_file, 'rb') as f:
                     result = subprocess.run(
                         ['docker', 'run', '--rm', '-i', args.image, '--keep-data-uris'],
@@ -416,9 +419,11 @@ def migrate_attachments(args):
 
                 if result.returncode != 0:
                     error_msg = result.stderr.decode('utf-8', errors='replace')
-                    print(f"  [失败] 转换失败: {error_msg[:200]}")
-                    fail_count += 1
-                    continue
+                    with print_lock:
+                        print(f"  [失败] 转换失败: {title} - {error_msg[:200]}")
+                    with counter_lock:
+                        counters['fail'] += 1
+                    return
 
                 content = result.stdout.decode('utf-8', errors='replace')
 
@@ -436,11 +441,14 @@ def migrate_attachments(args):
                 msg = f"成功 -> {md_file}"
                 if image_count > 0:
                     msg += f" (含 {image_count} 个图片)"
-                print(f"  [OK] {msg}")
+                with print_lock:
+                    print(f"  [OK] {msg}")
             except Exception as e:
-                print(f"  [失败] 转换异常: {str(e)}")
-                fail_count += 1
-                continue
+                with print_lock:
+                    print(f"  [失败] 转换异常: {title} - {str(e)}")
+                with counter_lock:
+                    counters['fail'] += 1
+                return
 
             # 创建 linked_file
             try:
@@ -453,38 +461,65 @@ def migrate_attachments(args):
                     'parentItem': parent_key
                 }
 
-                result = zot_remote.create_items([attachment_payload])
-                if result and result.get('successful'):
-                    print(f"  [OK] 已创建 linked_file")
+                api_result = zot_remote.create_items([attachment_payload])
+                if api_result and api_result.get('successful'):
+                    with print_lock:
+                        print(f"  [OK] 已创建 linked_file: {title}")
                 else:
-                    print(f"  [失败] 创建 linked_file 失败: {result}")
-                    fail_count += 1
-                    continue
+                    with print_lock:
+                        print(f"  [失败] 创建 linked_file 失败: {title} - {api_result}")
+                    with counter_lock:
+                        counters['fail'] += 1
+                    return
             except Exception as e:
-                print(f"  [失败] 创建 linked_file 异常: {str(e)}")
-                fail_count += 1
-                continue
+                with print_lock:
+                    print(f"  [失败] 创建 linked_file 异常: {title} - {str(e)}")
+                with counter_lock:
+                    counters['fail'] += 1
+                return
 
-        success_count += 1
+        with counter_lock:
+            counters['success'] += 1
 
-        # 删除原始 html 条目（可选）
+        # 删除原始条目（可选）
         if args.delete_original and not args.dry_run:
-            print(f"  [删除] 原始条目: {item_key}")
-            delete_success, delete_msg = delete_original_attachment(zot_remote, item_key, str(source_file), item_version)
+            with print_lock:
+                print(f"  [删除] 原始条目: {item_key}")
+            delete_success, delete_msg = delete_original_attachment(zot_remote, item_key, str(source_file), item_version, content_type)
             if delete_success:
-                print(f"  [OK] {delete_msg}")
-                delete_count += 1
+                with print_lock:
+                    print(f"  [OK] {delete_msg}")
+                with counter_lock:
+                    counters['delete'] += 1
             else:
-                print(f"  [失败] {delete_msg}")
-                delete_fail_count += 1
+                with print_lock:
+                    print(f"  [失败] {delete_msg}")
+                with counter_lock:
+                    counters['delete_fail'] += 1
+
+    # 使用线程池并发处理
+    concurrency = getattr(args, 'concurrency', 4)
+    print(f"使用 {concurrency} 个线程并发处理...")
+
+    with ThreadPoolExecutor(max_workers=concurrency) as executor:
+        futures = {executor.submit(process_single_attachment, att): att for att in attachments_to_migrate}
+        for future in as_completed(futures):
+            try:
+                future.result()
+            except Exception as e:
+                att = futures[future]
+                with print_lock:
+                    print(f"  [异常] 处理失败: {att.get('title', 'unknown')} - {e}")
+                with counter_lock:
+                    counters['fail'] += 1
 
     print("-" * 50)
     print(f"迁移完成:")
-    print(f"  成功: {success_count}")
-    print(f"  跳过: {skip_count}")
-    print(f"  失败: {fail_count}")
+    print(f"  成功: {counters['success']}")
+    print(f"  跳过: {counters['skip']}")
+    print(f"  失败: {counters['fail']}")
     if args.delete_original:
-        print(f"  删除: {delete_count}, 失败: {delete_fail_count}")
+        print(f"  删除: {counters['delete']}, 失败: {counters['delete_fail']}")
 
 
 def attach_to_zotero(md_path: Path, item_key: str, api_key: str, user_id: str) -> tuple[bool, str]:
