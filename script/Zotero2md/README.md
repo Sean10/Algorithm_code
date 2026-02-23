@@ -16,7 +16,8 @@
 pip install pyzotero
 
 # 确保 Docker 已安装并运行 markitdown 镜像
-docker pull sean10/markitdown
+# 从[microsoft/markitdown: Python tool for converting files and office documents to Markdown.](https://github.com/microsoft/markitdown)
+docker build -t sean10/markitdown:latest .
 ```
 
 ## 使用方法
