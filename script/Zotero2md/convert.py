@@ -8,6 +8,7 @@
 import argparse
 import base64
 import hashlib
+import os
 import re
 import subprocess
 import sys
@@ -136,11 +137,354 @@ def get_zotero_item_info(item_key: str) -> dict | None:
             'title': title,
             'parent_key': parent_key,
             'is_attachment': is_attachment,
-            'item_type': item_type
+            'item_type': item_type,
+            'data': data
         }
     except Exception:
         pass
     return None
+
+
+def get_collection_path(zot, collection_key: str) -> str:
+    """获取 collection 的完整路径"""
+    try:
+        collection = zot.collection(collection_key)
+        if not collection:
+            return ""
+        data = collection.get('data', {})
+        name = data.get('name', '')
+        # 尝试获取父 collection
+        parent = data.get('parent', '')
+        if parent:
+            parent_path = get_collection_path(zot, parent)
+            if parent_path:
+                return f"{parent_path}/{name}"
+        return name
+    except Exception:
+        return ""
+
+
+def delete_original_attachment(zot, item_key: str, file_path: str, item_version: int) -> tuple[bool, str]:
+    """删除原始 html 条目和磁盘文件"""
+    file_deleted = False
+    try:
+        if os.path.exists(file_path):
+            os.remove(file_path)
+            file_deleted = True
+    except Exception as e:
+        print(f"  [调试] 删除文件失败: {e}")
+
+    # pyzotero 的 @backoff_check 装饰器: 成功返回 True, 失败抛异常
+    try:
+        zot.delete_item({"key": item_key, "version": item_version})
+        msg = f"已删除条目 {item_key}"
+        if file_deleted:
+            msg += " 和文件"
+        return True, msg
+    except Exception as e:
+        print(f"  [调试] delete_item 异常: {type(e).__name__}: {e}")
+        if file_deleted:
+            return True, f"已删除文件，但 Zotero 条目删除失败: {e}"
+        return False, f"删除失败: {e}"
+
+
+def migrate_attachments(args):
+    """迁移模式：通过API列出条目，转换附件并创建linked_file"""
+    if not PYZOTERO_AVAILABLE:
+        print("错误: pyzotero 未安装，请运行: pip install pyzotero")
+        sys.exit(1)
+
+    if not args.zotero_api_key or not args.zotero_user_id:
+        print("错误: 迁移模式需要 --zotero-api-key 和 --zotero-user-id 参数")
+        print("       获取 API Key: https://www.zotero.org/settings/keys")
+        print("       用户 ID 在: 编辑 > 首选项 > 同步")
+        sys.exit(1)
+
+    # 基础路径
+    base_path = Path("/Users/sean10/Dropbox/workspace_ln/obsidian/zotero_collection")
+
+    # 本地模式：快速读取所有条目信息
+    print("从本地数据库获取所有条目...")
+    zot_local = Zotero(0, 'user', None, local=True)
+    all_items = zot_local.everything(zot_local.items())
+
+    # 获取所有 collections 用于构建路径（本地）
+    collections = zot_local.everything(zot_local.collections())
+    collection_map = {}
+    for col in collections:
+        col_data = col.get('data', {})
+        key = col_data.get('key', '')
+        collection_map[key] = col_data
+
+    # 过滤出包含 html/pdf 附件的条目
+    attachments_to_migrate = []
+    for item in all_items:
+        data = item.get('data', {})
+        item_type = data.get('itemType', '')
+        content_type = data.get('contentType', '')
+        link_mode = data.get('linkMode', '')
+
+        # 只处理附件类型
+        if item_type != 'attachment':
+            continue
+
+        # 检查是否为 html 或 pdf
+        if content_type not in ('text/html', 'application/pdf'):
+            continue
+
+        # 获取父条目信息
+        parent_key = data.get('parentItem', '')
+        if not parent_key:
+            continue
+
+        # 获取父条目信息
+        try:
+            parent_item = zot_local.item(parent_key)
+            if not parent_item:
+                continue
+            parent_data = parent_item.get('data', {})
+            title = parent_data.get('title', 'untitled')
+        except Exception:
+            title = 'untitled'
+
+        # 获取源文件路径
+        # linked_file: path 是完整文件路径
+        # imported_file/imported_url: 需要根据 collection 和 title 构建路径
+        source_file_path = ""
+        if link_mode == 'linked_file':
+            source_file_path = data.get('path', '')
+            # linked_file 的 path 可能是绝对路径或相对路径
+            # 如果是相对路径，需要处理
+            if source_file_path and not source_file_path.startswith('/'):
+                # 相对路径，可能是 storage 路径，不适用新方案
+                continue
+        else:
+            # imported_file/imported_url 模式，记录稍后构建路径
+            source_file_path = None
+
+        # 获取 collection 路径
+        collections_data = parent_data.get('collections', [])
+        collection_path = ""
+        if collections_data:
+            # 使用第一个 collection
+            col_key = collections_data[0]
+            col_data = collection_map.get(col_key, {})
+            col_name = col_data.get('name', '')
+            collection_path = col_name
+
+        item_key = data.get('key', '')
+        item_version = data.get('version', 0)
+        attachments_to_migrate.append({
+            'item_key': item_key,
+            'item_version': item_version,
+            'parent_key': parent_key,
+            'title': title,
+            'content_type': content_type,
+            'collection_path': collection_path,
+            'link_mode': link_mode,
+            'source_path': source_file_path,  # linked_file 的路径，或 None 表示需要构建
+            'data': data
+        })
+
+    # 处理重名情况：如果同一 stem 有多个文件，按类型添加后缀避免冲突
+    # 先按 (collection_path, stem) 分组
+    stem_groups = {}
+    for att in attachments_to_migrate:
+        # 先临时计算 stem
+        if att['link_mode'] == 'linked_file' and att['source_path']:
+            source_file = Path(att['source_path'])
+        else:
+            safe_title = re.sub(r'[<>:"/\\|?*]', '_', att['title'])
+            ext = '.html' if att['content_type'] == 'text/html' else '.pdf'
+            source_file = Path(safe_title + ext)
+        stem = source_file.stem
+        key = (att['collection_path'], stem)
+        if key not in stem_groups:
+            stem_groups[key] = []
+        stem_groups[key].append(att)
+
+    # 为有多个文件的组分配后缀
+    for key, atts in stem_groups.items():
+        if len(atts) > 1:
+            # 同一 stem 有多个文件，按类型分配后缀
+            for i, att in enumerate(atts):
+                if att['content_type'] == 'text/html':
+                    att['_md_suffix'] = '_html'
+                else:
+                    att['_md_suffix'] = '_pdf'
+        else:
+            atts[0]['_md_suffix'] = ''
+
+    print(f"找到 {len(attachments_to_migrate)} 个需要迁移的 html/pdf 附件")
+
+    if not attachments_to_migrate:
+        print("没有需要迁移的附件")
+        return
+
+    # 处理每个附件
+    success_count = 0
+    skip_count = 0
+    fail_count = 0
+    delete_count = 0
+    delete_fail_count = 0
+
+    # 初始化远程 API（用于创建 linked_file 和删除操作）
+    zot_remote = Zotero(args.zotero_user_id, 'user', args.zotero_api_key)
+    print("初始化远程 API 完成\n")
+
+    for att in attachments_to_migrate:
+        parent_key = att['parent_key']
+        title = att['title']
+        collection_path = att['collection_path']
+        content_type = att['content_type']
+        item_key = att['item_key']
+        item_version = att.get('item_version', 0)
+        link_mode = att['link_mode']
+        source_path = att['source_path']
+
+        # 获取源文件路径
+        # linked_file: 直接使用 path 字段的路径
+        # imported_file/imported_url: 根据 collection 和 title 构建
+        if link_mode == 'linked_file' and source_path:
+            source_file = Path(source_path)
+            source_dir = source_file.parent
+        else:
+            if collection_path:
+                source_dir = base_path / collection_path
+            else:
+                source_dir = base_path
+            # 清理标题中的非法文件名字符
+            safe_title = re.sub(r'[<>:"/\\|?*]', '_', title)
+            ext = '.html' if content_type == 'text/html' else '.pdf'
+            source_file = source_dir / f"{safe_title}{ext}"
+
+        # 构建 md 文件路径（使用后缀避免重名冲突）
+        md_suffix = att.get('_md_suffix', '')
+        md_file = source_dir / f"{source_file.stem}{md_suffix}.md"
+
+        print(f"\n[处理] {title}")
+        print(f"  源文件: {source_file}")
+        print(f"  MD 文件: {md_file}")
+
+        # 检查源文件是否存在
+        if not source_file.exists():
+            print(f"  [跳过] 源文件不存在")
+            skip_count += 1
+            continue
+
+        # 检查是否已存在 md linked_file（需单独请求 /children 接口，item 响应不含子项）
+        try:
+            children = zot_local.children(parent_key) or []
+
+            # 查找是否已有 md linked_file
+            has_md_linked = False
+            for child in children:
+                child_data = child.get('data', {})
+                if child_data.get('itemType') == 'attachment':
+                    child_link_mode = child_data.get('linkMode', '')
+                    child_content_type = child_data.get('contentType', '')
+                    child_path = child_data.get('path', '')
+                    if child_link_mode == 'linked_file' and child_content_type == 'text/markdown':
+                        if child_path.endswith('.md'):
+                            has_md_linked = True
+                            break
+        except Exception as e:
+            print(f"  [警告] 检查现有附件失败: {e}")
+            has_md_linked = False
+
+        if has_md_linked:
+            print(f"  [跳过] 已存在 md linked_file")
+            skip_count += 1
+            continue
+
+        # 转换文件
+        if args.dry_run:
+            print(f"  [DRY-RUN] 转换: {source_file} -> {md_file}")
+            print(f"  [DRY-RUN] 创建 linked_file: {md_file}")
+        else:
+            # 使用现有的 convert_file 函数
+            try:
+                # 直接调用 markitdown
+                with open(source_file, 'rb') as f:
+                    result = subprocess.run(
+                        ['docker', 'run', '--rm', '-i', args.image, '--keep-data-uris'],
+                        stdin=f,
+                        stdout=subprocess.PIPE,
+                        stderr=subprocess.PIPE,
+                        text=False
+                    )
+
+                if result.returncode != 0:
+                    error_msg = result.stderr.decode('utf-8', errors='replace')
+                    print(f"  [失败] 转换失败: {error_msg[:200]}")
+                    fail_count += 1
+                    continue
+
+                content = result.stdout.decode('utf-8', errors='replace')
+
+                # 提取并保存图片
+                image_count = 0
+                if not args.no_extract_images:
+                    content, image_count = extract_and_save_images(md_file, content)
+
+                # 确保目录存在
+                source_dir.mkdir(parents=True, exist_ok=True)
+
+                with open(md_file, 'w', encoding='utf-8') as f:
+                    f.write(content)
+
+                msg = f"成功 -> {md_file}"
+                if image_count > 0:
+                    msg += f" (含 {image_count} 个图片)"
+                print(f"  [OK] {msg}")
+            except Exception as e:
+                print(f"  [失败] 转换异常: {str(e)}")
+                fail_count += 1
+                continue
+
+            # 创建 linked_file
+            try:
+                attachment_payload = {
+                    'itemType': 'attachment',
+                    'linkMode': 'linked_file',
+                    'title': md_file.name,
+                    'path': str(md_file),
+                    'contentType': 'text/markdown',
+                    'parentItem': parent_key
+                }
+
+                result = zot_remote.create_items([attachment_payload])
+                if result and result.get('successful'):
+                    print(f"  [OK] 已创建 linked_file")
+                else:
+                    print(f"  [失败] 创建 linked_file 失败: {result}")
+                    fail_count += 1
+                    continue
+            except Exception as e:
+                print(f"  [失败] 创建 linked_file 异常: {str(e)}")
+                fail_count += 1
+                continue
+
+        success_count += 1
+
+        # 删除原始 html 条目（可选）
+        if args.delete_original and not args.dry_run:
+            print(f"  [删除] 原始条目: {item_key}")
+            delete_success, delete_msg = delete_original_attachment(zot_remote, item_key, str(source_file), item_version)
+            if delete_success:
+                print(f"  [OK] {delete_msg}")
+                delete_count += 1
+            else:
+                print(f"  [失败] {delete_msg}")
+                delete_fail_count += 1
+
+    print("-" * 50)
+    print(f"迁移完成:")
+    print(f"  成功: {success_count}")
+    print(f"  跳过: {skip_count}")
+    print(f"  失败: {fail_count}")
+    if args.delete_original:
+        print(f"  删除: {delete_count}, 失败: {delete_fail_count}")
 
 
 def attach_to_zotero(md_path: Path, item_key: str, api_key: str, user_id: str) -> tuple[bool, str]:
@@ -294,8 +638,23 @@ def main():
         default=0,
         help='限制处理的文件数量 (0=不限制)'
     )
+    parser.add_argument(
+        '--migrate',
+        action='store_true',
+        help='迁移模式：通过API列出条目，转换附件并创建linked_file'
+    )
+    parser.add_argument(
+        '--delete-original',
+        action='store_true',
+        help='迁移时删除原始html条目和文件'
+    )
 
     args = parser.parse_args()
+
+    # 迁移模式：直接调用迁移函数并退出
+    if args.migrate:
+        migrate_attachments(args)
+        sys.exit(0)
 
     directory = Path(args.directory).resolve()
 

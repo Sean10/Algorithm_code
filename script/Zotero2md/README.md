@@ -8,6 +8,7 @@
 - 提取 Base64 图片为独立文件
 - 支持并发处理
 - 可将转换后的 MD 文件附加到对应的 Zotero 条目（使用 linked_file 模式）
+- **迁移模式**：通过本地数据库 + Web API 扫描 html/pdf 附件，批量转换并创建 linked_file，可选删除原始条目
 
 ## 安装
 
@@ -75,6 +76,34 @@ python3 convert.py /path/to/storage --attach-only -z \
   --zotero-user-id "YOUR_USER_ID"
 ```
 
+### 迁移模式
+
+从 Zotero 本地数据库读取 html/pdf 附件列表，逐个转换并创建 md linked_file。适用于链接到 Obsidian 等外部目录的条目（linked_file 模式）。
+
+- 需要 Zotero 运行，启用本地 API
+- 需要 API Key 用于创建 linked_file 和删除条目
+- 若已存在 md linked_file 则跳过（通过 `/children` 接口检测）
+- `--delete-original`：转换完成后删除原始 html/pdf 附件条目及磁盘文件
+
+```bash
+# 迁移（不删除原始条目）
+python3 convert.py --migrate -c 6 \
+  --zotero-api-key "YOUR_API_KEY" \
+  --zotero-user-id "YOUR_USER_ID"
+
+# 迁移并删除原始条目和文件
+python3 convert.py --migrate -c 6 --delete-original \
+  --zotero-api-key "YOUR_API_KEY" \
+  --zotero-user-id "YOUR_USER_ID"
+
+# 先 dry-run 查看将处理的条目
+python3 convert.py --migrate --dry-run \
+  --zotero-api-key "YOUR_API_KEY" \
+  --zotero-user-id "YOUR_USER_ID"
+```
+
+**注意**：迁移模式的 `base_path` 当前在代码中写死，需根据实际 zotero_collection 路径修改 `convert.py` 中的 `base_path` 变量。
+
 ## 参数说明
 
 | 参数 | 说明 | 默认值 |
@@ -84,13 +113,15 @@ python3 convert.py /path/to/storage --attach-only -z \
 | `-i, --image` | Docker 镜像 | sean10/markitdown |
 | `-e, --extensions` | 文件扩展名 | .html .pdf |
 | `-v, --verbose` | 显示详细输出 | 关闭 |
-| `--no-extract-images` | 不提取图片 | 开启 |
+| `--no-extract-images` | 不提取 base64 图片，保持内联 | 默认提取 |
 | `-z, --zotero` | 附加到 Zotero | 关闭 |
 | `--attach-only` | 仅附加已存在的 MD 文件 | 关闭 |
 | `--zotero-api-key` | Zotero API Key | - |
 | `--zotero-user-id` | Zotero 用户 ID | - |
 | `--dry-run` | 不实际执行，仅显示信息 | 关闭 |
 | `-l, --limit` | 限制处理文件数量 | 不限制 |
+| `--migrate` | 迁移模式：扫描附件并批量转换 | 关闭 |
+| `--delete-original` | 迁移时删除原始条目和文件（需与 --migrate 同用） | 关闭 |
 
 ## Zotero 本地模式说明
 
