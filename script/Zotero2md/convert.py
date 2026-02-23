@@ -187,6 +187,39 @@ def attach_to_zotero(md_path: Path, item_key: str, api_key: str, user_id: str) -
         return False, f"Zotero 连接错误: {str(e)}"
 
 
+def process_zotero_attachment(md_path: Path, parent_key: str, args) -> tuple[Path, bool, str]:
+    """处理 Zotero 关联（线程安全）"""
+    # 获取条目信息
+    item_info = get_zotero_item_info(parent_key)
+
+    if not item_info:
+        return (md_path, False, f"无法获取条目 {parent_key} 信息，跳过")
+
+    # 如果是附件，尝试获取父条目
+    target_key = parent_key
+    title_info = ""
+
+    if item_info['is_attachment'] and item_info['parent_key']:
+        # 获取父条目信息
+        parent_info = get_zotero_item_info(item_info['parent_key'])
+        if parent_info:
+            target_key = item_info['parent_key']
+            title_info = f" -> {parent_info['title']}"
+        else:
+            title_info = f" (附件父条目获取失败)"
+    else:
+        title_info = f" - {item_info['title']}"
+
+    if args.dry_run:
+        return (md_path, True, f"[DRY-RUN] {md_path.name} -> Zotero: {target_key}{title_info}")
+    else:
+        zotero_success, zotero_msg = attach_to_zotero(md_path, target_key, args.zotero_api_key, args.zotero_user_id)
+        if zotero_success:
+            return (md_path, True, f"{md_path.name} -> {target_key}{title_info}")
+        else:
+            return (md_path, False, zotero_msg)
+
+
 def main():
     parser = argparse.ArgumentParser(
         description='使用 markitdown 将 HTML/PDF 转换为 Markdown'
@@ -365,7 +398,11 @@ def main():
         print(f"完成: 附加 {zotero_attached}, 失败 {zotero_failed}")
         sys.exit(0)
 
+    # 用于收集 Zotero 关联任务
+    zotero_futures = []
+
     with ThreadPoolExecutor(max_workers=args.concurrency) as executor:
+        # 提交转换任务
         futures = {
             executor.submit(convert_file, f[0], args.image, extract_images): f
             for f in files
@@ -379,45 +416,25 @@ def main():
                 if args.verbose:
                     print(f"[OK] {message}")
 
-                # Zotero 关联
+                # Zotero 关联 - 提交到线程池并发执行
                 if args.zotero and parent_key:
-                    # 获取条目信息
-                    item_info = get_zotero_item_info(parent_key)
-
-                    if not item_info:
-                        print(f"  [ZOTERO] 无法获取条目 {parent_key} 信息，跳过")
-                        zotero_failed += 1
-                        continue
-
-                    # 如果是附件，尝试获取父条目
-                    target_key = parent_key
-                    title_info = ""
-
-                    if item_info['is_attachment'] and item_info['parent_key']:
-                        # 获取父条目信息
-                        parent_info = get_zotero_item_info(item_info['parent_key'])
-                        if parent_info:
-                            target_key = item_info['parent_key']
-                            title_info = f" -> {parent_info['title']}"
-                        else:
-                            title_info = f" (附件父条目获取失败)"
-                    else:
-                        title_info = f" - {item_info['title']}"
-
-                    if args.dry_run:
-                        print(f"  [DRY-RUN] {md_path.name} -> Zotero: {target_key}{title_info}")
-                        zotero_attached += 1
-                    else:
-                        zotero_success, zotero_msg = attach_to_zotero(md_path, target_key, args.zotero_api_key, args.zotero_user_id)
-                        if zotero_success:
-                            print(f"  [ZOTERO] {md_path.name} -> {target_key}{title_info}")
-                            zotero_attached += 1
-                        else:
-                            print(f"  [ZOTERO] {zotero_msg}")
-                            zotero_failed += 1
+                    zotero_future = executor.submit(process_zotero_attachment, md_path, parent_key, args)
+                    zotero_futures.append(zotero_future)
             else:
                 fail_count += 1
                 print(f"[FAIL] {file_path}: {message}")
+
+    # 等待所有 Zotero 关联任务完成
+    if zotero_futures:
+        print("\n等待 Zotero 关联完成...")
+        for future in as_completed(zotero_futures):
+            md_path, zotero_success, msg = future.result()
+            if zotero_success:
+                print(f"  [ZOTERO] {msg}")
+                zotero_attached += 1
+            else:
+                print(f"  [ZOTERO] {msg}")
+                zotero_failed += 1
 
     print("-" * 50)
     print(f"完成: 成功 {success_count}, 失败 {fail_count}")
