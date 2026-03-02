@@ -109,11 +109,12 @@ public:
             size_t nextHead = (currHead + 1) % capacity_;
             
             // 3. 尝试原子地移动 head 指针
-            if (head_.compare_exchange_weak(currHead, nextHead, 
-                                          std::memory_order_release, 
+            if (head_.compare_exchange_weak(currHead, nextHead,
+                                          std::memory_order_release,
                                           std::memory_order_relaxed)) {
                 // 4. 成功获得了 currHead 位置，读取数据
-                item = buffer_[currHead];
+                // 使用 swap 以支持 move-only 类型
+                std::swap(item, buffer_[currHead]);
                 return true;
             }
             // CAS 失败，说明其他线程抢先了，重试

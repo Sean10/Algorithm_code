@@ -130,6 +130,11 @@ public:
     size_t capacity() const {
         return capacity_;
     }
+
+    // 别名接口，与其他队列实现保持一致
+    bool enqueue(const T& item) { return push(item); }
+    bool enqueue(T&& item) { return push(std::move(item)); }
+    bool dequeue(T& item) { return pop(item); }
 };
 
 } // namespace stage2
