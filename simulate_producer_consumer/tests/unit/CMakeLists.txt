@@ -5,16 +5,20 @@ set(UNIT_TEST_SOURCES
     test_mutex_queue.cpp
     test_spsc_queue.cpp
     test_benchmark_tools.cpp
+    test_mpmc_queue.cpp
+    test_smr.cpp
+    test_performance_optimization.cpp
 )
 
 # 创建单元测试可执行文件
 add_executable(unit_tests ${UNIT_TEST_SOURCES})
 
 # 链接库
-target_link_libraries(unit_tests 
+target_link_libraries(unit_tests
+    Threads::Threads
+    atomic
     gtest
     gtest_main
-    Threads::Threads
     ${Boost_LIBRARIES}
 )
 
